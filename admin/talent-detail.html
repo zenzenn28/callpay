@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Detail Talent — CallPay Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+<script>
+function toggleSidebar(){
+  const sb  = document.querySelector('.sidebar');
+  const ov  = document.getElementById('sidebar-overlay');
+  const btn = document.getElementById('hamburger-btn');
+  const open = sb.classList.toggle('open');
+  ov.classList.toggle('open', open);
+  btn.textContent = open ? '✕' : '☰';
+}
+function closeSidebar(){
+  const sb  = document.querySelector('.sidebar');
+  const ov  = document.getElementById('sidebar-overlay');
+  const btn = document.getElementById('hamburger-btn');
+  if(!sb||!ov||!btn) return;
+  sb.classList.remove('open');
+  ov.classList.remove('open');
+  btn.textContent = '☰';
+}
+</script>
+</head>
+<body>
+
+<!-- MOBILE TOPBAR -->
+<div class="mobile-topbar">
+  <span class="mobile-logo">CallPay</span>
+  <button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button>
+</div>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-text">CallPay</div>
+      <div class="sidebar-logo-sub">Admin Panel</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html"   class="nav-item"><span class="nav-icon">📊</span>Dashboard</a>
+      <a href="orders.html"  class="nav-item"><span class="nav-icon">📦</span>Order</a>
+      <a href="talents.html" class="nav-item active"><span class="nav-icon">👥</span>Talent</a>
+      <a href="settings.html"class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
+      <a href="../index.html" class="nav-item" onclick="return confirmLeave()" title="Kembali ke website (logout otomatis)"><span class="nav-icon">🌐</span>Lihat Website</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="doLogout()">Logout →</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div style="margin-bottom:18px">
+      <a href="talents.html" class="btn btn-outline btn-sm">← Kembali ke Daftar Talent</a>
+    </div>
+
+    <div id="content"></div>
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script>
+requireAuth();
+function doLogout(){ DB.setLogin(false); window.location.href='index.html'; }
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const params = new URLSearchParams(window.location.search);
+  const id     = parseInt(params.get('id'));
+  const talent = TALENTS.find(t=>t.id===id);
+
+  if(!talent){
+    document.getElementById('content').innerHTML='<p style="color:var(--muted)">Talent tidak ditemukan.</p>';
+    return;
+  }
+
+  const orders  = DB.getOrders();
+  const cfg     = DB.getSettings();
+  const cut     = cfg.agencyCut / 100;
+
+  // filter orders for this talent
+  const myOrders  = orders.filter(o=>o.talentName===talent.name);
+  const doneOrders= myOrders.filter(o=>o.status==='selesai');
+
+  const grossTotal = doneOrders.reduce((s,o)=>s+o.price,0);
+  const agencyFee  = Math.round(grossTotal * cut);
+  const netEarning = grossTotal - agencyFee;
+
+  // service breakdown
+  const svcMap = {};
+  doneOrders.forEach(o=>{
+    if(!svcMap[o.service]) svcMap[o.service]={count:0,total:0};
+    svcMap[o.service].count++;
+    svcMap[o.service].total+=o.price;
+  });
+
+  const genderLabel = talent.gender==='female'
+    ? '<span style="background:rgba(249,168,201,.1);color:var(--pink);border:1px solid var(--border-pk);padding:2px 12px;border-radius:99px;font-size:.75rem;font-weight:800">Wanita</span>'
+    : '<span style="background:rgba(168,213,249,.1);color:var(--blue);border:1px solid var(--border-bl);padding:2px 12px;border-radius:99px;font-size:.75rem;font-weight:800">Pria</span>';
+
+  document.title = `${talent.name} — CallPay Admin`;
+
+  document.getElementById('content').innerHTML = `
+    <!-- Header -->
+    <div class="talent-header">
+      <img src="${talent.img}" alt="${talent.name}">
+      <div class="talent-header-info">
+        <h2>${talent.name} ${genderLabel}</h2>
+        <p>Umur ${talent.age} tahun &nbsp;·&nbsp; ${talent.services.join(' · ')}</p>
+      </div>
+    </div>
+
+    <!-- Earning summary -->
+    <div class="earning-cards">
+      <div class="earning-card">
+        <div class="ec-label">Total Orderan</div>
+        <div class="ec-val pk">${myOrders.length}</div>
+        <div class="ec-note">${doneOrders.length} selesai · ${myOrders.filter(o=>o.status==='baru'||o.status==='proses').length} aktif</div>
+      </div>
+      <div class="earning-card">
+        <div class="ec-label">Gross Omzet</div>
+        <div class="ec-val yl">${DB.formatRp(grossTotal)}</div>
+        <div class="ec-note">Dari orderan selesai</div>
+      </div>
+      <div class="earning-card">
+        <div class="ec-label">Potongan Agency (${cfg.agencyCut}%)</div>
+        <div class="ec-val" style="color:var(--red)">${DB.formatRp(agencyFee)}</div>
+        <div class="ec-note">Dipotong dari gross omzet</div>
+      </div>
+    </div>
+
+    <!-- Net earning highlight -->
+    <div style="background:rgba(61,214,140,.06);border:1px solid rgba(61,214,140,.2);border-radius:var(--rl);padding:20px 24px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:.75rem;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">💰 Pendapatan Bersih ${talent.name}</div>
+        <div style="font-size:.85rem;color:var(--muted);font-weight:600">Gross omzet dikurangi potongan agency ${cfg.agencyCut}%</div>
+      </div>
+      <div style="font-size:1.8rem;font-weight:900;color:var(--green)">${DB.formatRp(netEarning)}</div>
+    </div>
+
+    <!-- Service breakdown -->
+    ${Object.keys(svcMap).length ? `
+    <div class="panel" style="margin-bottom:20px">
+      <h3>📊 Breakdown per Layanan</h3>
+      <table>
+        <thead><tr><th>Layanan</th><th>Jumlah Order</th><th>Total Omzet</th><th>Bagian Talent (${100-cfg.agencyCut}%)</th></tr></thead>
+        <tbody>
+          ${Object.entries(svcMap).map(([svc,d])=>`
+            <tr>
+              <td>${svc}</td>
+              <td>${d.count} order</td>
+              <td style="color:var(--yellow);font-weight:800">${DB.formatRp(d.total)}</td>
+              <td style="color:var(--green);font-weight:800">${DB.formatRp(Math.round(d.total*(1-cut)))}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : ''}
+
+    <!-- Order history -->
+    <div class="panel">
+      <h3>🗂️ Riwayat Orderan</h3>
+      ${myOrders.length ? `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Pelanggan</th><th>Layanan</th><th>Durasi</th><th>Harga</th><th>Status</th><th>Tanggal</th></tr></thead>
+          <tbody>
+            ${myOrders.map(o=>`
+              <tr>
+                <td style="color:var(--muted);font-size:.72rem;font-family:monospace">${o.id.slice(-8)}</td>
+                <td>${o.customerName}</td>
+                <td>${o.service}</td>
+                <td>${DUR_LABEL[o.duration]||o.duration+' mnt'}</td>
+                <td style="font-weight:800;color:var(--pink)">${DB.formatRp(o.price)}</td>
+                <td><span class="badge badge-${o.status}">${o.status}</span></td>
+                <td style="color:var(--muted);font-size:.78rem">${DB.formatDate(o.date)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : `
+      <div class="empty"><div class="empty-icon">📭</div><p>${talent.name} belum memiliki orderan</p></div>`}
+    </div>
+  `;
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.nav-item').forEach(function(a){
+    a.addEventListener('click',function(){
+      if(window.innerWidth<=768) closeSidebar();
+    });
+  });
+});
+</script>
+</body>
+</html>

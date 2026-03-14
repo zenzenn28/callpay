@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Order — CallPay Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+<script>
+function toggleSidebar(){
+  const sb  = document.querySelector('.sidebar');
+  const ov  = document.getElementById('sidebar-overlay');
+  const btn = document.getElementById('hamburger-btn');
+  const open = sb.classList.toggle('open');
+  ov.classList.toggle('open', open);
+  btn.textContent = open ? '✕' : '☰';
+}
+function closeSidebar(){
+  const sb  = document.querySelector('.sidebar');
+  const ov  = document.getElementById('sidebar-overlay');
+  const btn = document.getElementById('hamburger-btn');
+  if(!sb||!ov||!btn) return;
+  sb.classList.remove('open');
+  ov.classList.remove('open');
+  btn.textContent = '☰';
+}
+</script>
+</head>
+<body>
+
+<!-- MOBILE TOPBAR -->
+<div class="mobile-topbar">
+  <span class="mobile-logo">CallPay</span>
+  <button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button>
+</div>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-text">CallPay</div>
+      <div class="sidebar-logo-sub">Admin Panel</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html"   class="nav-item"><span class="nav-icon">📊</span>Dashboard</a>
+      <a href="orders.html"  class="nav-item active"><span class="nav-icon">📦</span>Order</a>
+      <a href="talents.html" class="nav-item"><span class="nav-icon">👥</span>Talent</a>
+      <a href="settings.html"class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
+      <a href="../index.html" class="nav-item" onclick="return confirmLeave()" title="Kembali ke website (logout otomatis)"><span class="nav-icon">🌐</span>Lihat Website</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="doLogout()">Logout →</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <h1>Manajemen Order 📦</h1>
+        <p>Kelola semua orderan masuk dari pelanggan</p>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <select id="filter-status" class="btn btn-outline" style="padding:8px 14px;border-radius:99px;font-size:.83rem" onchange="render()">
+          <option value="">Semua Status</option>
+          <option value="baru">Baru</option>
+          <option value="proses">Proses</option>
+          <option value="selesai">Selesai</option>
+          <option value="batal">Batal</option>
+        </select>
+        <input type="text" id="search" placeholder="Cari nama / talent..." oninput="render()"
+          style="padding:8px 14px;border-radius:99px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.83rem;font-family:'Nunito',sans-serif;outline:none;width:200px">
+      </div>
+    </div>
+
+    <!-- Summary badges -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px" id="summary-badges"></div>
+
+    <div class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Pelanggan</th><th>WA</th><th>Talent</th>
+              <th>Layanan</th><th>Durasi</th><th>Harga</th>
+              <th>Status</th><th>Sisa Waktu</th><th>Tanggal</th><th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="orders-body"></tbody>
+        </table>
+        <div class="empty" id="empty-state" style="display:none">
+          <div class="empty-icon">📭</div>
+          <p>Tidak ada order ditemukan</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="modal-bg" id="del-modal">
+  <div class="modal-box">
+    <div class="modal-title">🗑️ Hapus Order?</div>
+    <div class="modal-desc">Order ini akan dihapus permanen dan tidak bisa dikembalikan.</div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeDelModal()">Batal</button>
+      <button class="btn btn-red" onclick="confirmDelete()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="data.js"></script>
+<script>
+requireAuth();
+function doLogout(){ DB.setLogin(false); window.location.href='index.html'; }
+
+let deleteId = null;
+
+function render(){
+  // Sync status otomatis dulu sebelum render
+  const orders  = DB.syncStatuses();
+  const fStatus = document.getElementById('filter-status').value;
+  const fSearch = document.getElementById('search').value.toLowerCase();
+
+  // summary
+  const counts = {baru:0,proses:0,selesai:0,batal:0};
+  orders.forEach(o=>{ if(counts[o.status]!==undefined) counts[o.status]++; });
+  document.getElementById('summary-badges').innerHTML = [
+    {k:'baru',   label:'Baru',   cls:'badge-baru'},
+    {k:'proses', label:'Proses', cls:'badge-proses'},
+    {k:'selesai',label:'Selesai',cls:'badge-selesai'},
+    {k:'batal',  label:'Batal',  cls:'badge-batal'},
+  ].map(b=>`<span class="badge ${b.cls}" style="font-size:.8rem;padding:5px 14px">${b.label}: ${counts[b.k]}</span>`).join('');
+
+  // filter
+  let filtered = orders;
+  if(fStatus) filtered = filtered.filter(o=>o.status===fStatus);
+  if(fSearch) filtered = filtered.filter(o=>
+    o.customerName?.toLowerCase().includes(fSearch) ||
+    o.talentName?.toLowerCase().includes(fSearch) ||
+    o.service?.toLowerCase().includes(fSearch)
+  );
+
+  const tbody = document.getElementById('orders-body');
+  const empty = document.getElementById('empty-state');
+  if(!filtered.length){ tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+
+  tbody.innerHTML = filtered.map(o=>{
+    const remaining = DB.timeRemaining(o);
+    const isActive  = o.status === 'baru' || o.status === 'proses';
+    const remColor  = o.status==='selesai' ? 'var(--green)'
+                    : o.status==='batal'   ? 'var(--muted)'
+                    : o.status==='proses'  ? 'var(--yellow)'
+                    : 'var(--blue-mid)';
+    return `
+    <tr>
+      <td style="color:var(--muted);font-size:.72rem;font-family:monospace">${o.id.slice(-8)}</td>
+      <td><div style="font-weight:800">${o.customerName}</div><div style="font-size:.75rem;color:var(--muted)">${o.customerNote||''}</div></td>
+      <td><a href="https://wa.me/${o.customerWa?.replace(/\D/g,'')}" target="_blank" style="color:var(--blue);font-size:.82rem">${o.customerWa}</a></td>
+      <td>${o.talentName}</td>
+      <td>${o.service}</td>
+      <td>${DUR_LABEL[o.duration]||o.duration+' mnt'}</td>
+      <td style="font-weight:800;color:var(--pink)">${DB.formatRp(o.price)}</td>
+      <td><span class="badge badge-${o.status}">${o.status.charAt(0).toUpperCase()+o.status.slice(1)}</span></td>
+      <td style="font-size:.8rem;font-weight:700;color:${remColor}">${remaining}</td>
+      <td style="color:var(--muted);font-size:.78rem">${DB.formatDate(o.date)}</td>
+      <td>
+        <button class="btn btn-icon btn-red" onclick="openDelModal('${o.id}')" title="Hapus">🗑️</button>
+        ${isActive ? `<button class="btn btn-icon btn-outline" style="margin-left:4px" onclick="manualBatal('${o.id}')" title="Batalkan">✕</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function manualBatal(id){
+  if(confirm('Batalkan order ini?')){
+    DB.updateOrderStatus(id,'batal');
+    toast('Order dibatalkan');
+    render();
+  }
+}
+
+function changeStatus(id, status){
+  DB.updateOrderStatus(id, status);
+  toast('Status diperbarui ✅');
+  render();
+}
+
+function openDelModal(id){ deleteId=id; document.getElementById('del-modal').classList.add('open'); }
+function closeDelModal(){ document.getElementById('del-modal').classList.remove('open'); deleteId=null; }
+function confirmDelete(){ if(deleteId){ DB.deleteOrder(deleteId); closeDelModal(); toast('Order dihapus 🗑️'); render(); } }
+
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+
+document.addEventListener('DOMContentLoaded', () => {
+  render();
+  // Auto-refresh setiap 30 detik untuk update status & sisa waktu
+  setInterval(render, 30000);
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.nav-item').forEach(function(a){
+    a.addEventListener('click',function(){
+      if(window.innerWidth<=768) closeSidebar();
+    });
+  });
+});
+</script>
+</body>
+</html>
