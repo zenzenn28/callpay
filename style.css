@@ -408,14 +408,37 @@ button{cursor:pointer;font-family:'Nunito',sans-serif}
 
 /* ── RESPONSIVE ─────────────────────────── */
 @media(max-width:768px){
-  .navbar{padding:0 18px}
+  .navbar{padding:0 16px}
   .nav-links{display:none}
-  .section{padding:60px 18px}
-  .hero{padding:100px 18px 60px}
-  .hero-stats{gap:16px}
+  .section{padding:56px 16px}
+  .hero{padding:96px 16px 56px}
+  .hero-stats{gap:16px;flex-wrap:wrap}
+  .hero h1{font-size:clamp(1.9rem,7vw,2.8rem)}
+  .hero p{font-size:.95rem}
+  .hero-btns{flex-direction:column;align-items:center}
+  .btn-solid,.btn-outline{width:100%;max-width:280px;text-align:center;padding:14px}
   .talent-controls{flex-direction:column;align-items:flex-start}
-  .footer{padding:44px 18px 22px}
+  .talent-filters{width:100%}
+  .filter-btn{flex:1;text-align:center}
+  .footer{padding:44px 16px 22px}
   .footer-top{flex-direction:column;gap:28px}
+  /* modal full screen */
+  .modal-backdrop{align-items:flex-end;padding:0}
+  .modal-box{border-radius:var(--radius-lg) var(--radius-lg) 0 0;max-width:100%;max-height:92vh;padding:24px 18px}
+  /* services 1 col */
+  .services-grid{grid-template-columns:1fr}
+  /* talent 2 col */
+  .talent-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  /* testi 1 col */
+  .testi-grid{grid-template-columns:1fr}
+  /* footer */
+  .footer-top{flex-direction:column}
+  .footer-nav ul{flex-direction:row;flex-wrap:wrap;gap:6px 16px}
+}
+
+@media(max-width:400px){
+  .talent-grid{grid-template-columns:1fr}
+  .hero-stats{gap:12px}
 }
 
 /* Toast animation (used by order success) */
