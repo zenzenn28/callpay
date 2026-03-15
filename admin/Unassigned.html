@@ -159,8 +159,8 @@ function render() {
           <button class="btn btn-pink" onclick="openAssignModal('${o.id}')">
             ✅ Assign
           </button>
-          <button class="btn btn-red btn-sm" onclick="skipOrder('${o.id}')" title="Tandai selesai tanpa assign">
-            Lewati
+          <button class="btn btn-red btn-sm" onclick="skipOrder('${o.id}')" title="Hapus order ini">
+            🗑️ Hapus
           </button>
         </div>
       </div>
@@ -203,9 +203,10 @@ function confirmAssign() {
 }
 
 function skipOrder(orderId) {
-  if (confirm('Lewati order ini? Order akan tetap ada tapi tidak masuk ke rekap talent.')) {
-    toast('Order dilewati');
-    // Just re-render, order stays unassigned
+  if (confirm('Hapus order ini? Order akan dihapus permanen dari sistem.')) {
+    DB.deleteOrder(orderId);
+    toast('🗑️ Order dihapus');
+    render();
   }
 }
 
