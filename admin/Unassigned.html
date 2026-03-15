@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Order Tanpa Talent — CallPay Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+<script>
+function toggleSidebar(){
+  const sb  = document.querySelector('.sidebar');
+  const ov  = document.getElementById('sidebar-overlay');
+  const btn = document.getElementById('hamburger-btn');
+  const open = sb.classList.toggle('open');
+  ov.classList.toggle('open', open);
+  btn.textContent = open ? '✕' : '☰';
+}
+function closeSidebar(){
+  const sb  = document.querySelector('.sidebar');
+  const ov  = document.getElementById('sidebar-overlay');
+  const btn = document.getElementById('hamburger-btn');
+  if(!sb||!ov||!btn) return;
+  sb.classList.remove('open');
+  ov.classList.remove('open');
+  btn.textContent = '☰';
+}
+</script>
+</head>
+<body>
+
+<!-- MOBILE TOPBAR -->
+<div class="mobile-topbar">
+  <span class="mobile-logo">CallPay</span>
+  <button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button>
+</div>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-text">CallPay</div>
+      <div class="sidebar-logo-sub">Admin Panel</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html"       class="nav-item"><span class="nav-icon">📊</span>Dashboard</a>
+      <a href="orders.html"      class="nav-item"><span class="nav-icon">📦</span>Order</a>
+      <a href="unassigned.html"  class="nav-item active"><span class="nav-icon">🎯</span>Assign Talent</a>
+      <a href="talents.html"     class="nav-item"><span class="nav-icon">👥</span>Talent</a>
+      <a href="settings.html"    class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
+      <a href="../index.html"    class="nav-item" onclick="return confirmLeave()"><span class="nav-icon">🌐</span>Lihat Website</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="doLogout()">Logout →</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <h1>Assign Talent 🎯</h1>
+      <p>Order masuk tanpa talent — pilihkan talent yang akan mengambil orderan ini</p>
+    </div>
+
+    <!-- Summary -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px" id="ua-summary"></div>
+
+    <!-- List -->
+    <div id="ua-list"></div>
+  </main>
+</div>
+
+<!-- CONFIRM ASSIGN MODAL -->
+<div class="modal-bg" id="assign-modal">
+  <div class="modal-box">
+    <div class="modal-title">✅ Konfirmasi Assign Talent?</div>
+    <div class="modal-desc" id="assign-desc">—</div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAssignModal()">Batal</button>
+      <button class="btn btn-pink" onclick="confirmAssign()">Konfirmasi</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="data.js"></script>
+<script>
+requireAuth();
+function doLogout(){ DB.setLogin(false); window.location.href='index.html'; }
+
+let pendingAssign = null; // { orderId, talentId, talentName }
+
+function render() {
+  const orders = DB.getOrders().filter(o => !o.talentId && !o.talentName);
+  const cfg    = DB.getSettings();
+
+  // Summary
+  const total   = orders.length;
+  const selesai = orders.filter(o => o.status === 'selesai').length;
+  document.getElementById('ua-summary').innerHTML = `
+    <span class="badge badge-baru" style="font-size:.8rem;padding:5px 14px">Belum di-assign: ${total}</span>
+    <span class="badge badge-selesai" style="font-size:.8rem;padding:5px 14px">Selesai: ${selesai}</span>
+  `;
+
+  const container = document.getElementById('ua-list');
+
+  if (!orders.length) {
+    container.innerHTML = `
+      <div class="empty"><div class="empty-icon">🎉</div>
+      <p>Semua order sudah di-assign talent!</p></div>`;
+    return;
+  }
+
+  container.innerHTML = orders.map(o => {
+    const talentOptions = TALENTS.map(t =>
+      `<option value="${t.id}|${t.name}">${t.name} — ${t.gender === 'female' ? '🌸' : '💙'} ${t.gender === 'female' ? 'Wanita' : 'Pria'}</option>`
+    ).join('');
+
+    const genderBadge = o.genderPref
+      ? `<span class="badge" style="background:rgba(249,168,201,.1);color:var(--pink);border:1px solid var(--border-pk)">
+          Preferensi: ${o.genderPref === 'female' ? '🌸 Wanita' : '💙 Pria'}
+         </span>`
+      : '';
+
+    return `
+    <div class="panel" style="margin-bottom:16px" id="card-${o.id}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+        <div>
+          <div style="font-weight:900;font-size:1rem;margin-bottom:4px">
+            ${o.customerName}
+            <span style="font-size:.72rem;color:var(--muted);font-family:monospace;font-weight:400;margin-left:8px">#${o.id.slice(-8)}</span>
+          </div>
+          <div style="font-size:.82rem;color:var(--muted);font-weight:600;margin-bottom:6px">
+            📅 ${DB.formatDate(o.date)} &nbsp;·&nbsp; 💼 ${o.service} &nbsp;·&nbsp; ⏱ ${DUR_LABEL[o.duration]||o.duration+' mnt'}
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <span style="font-weight:800;color:var(--pink)">${DB.formatRp(o.price)}</span>
+            <span class="badge badge-${o.status}">${o.status.charAt(0).toUpperCase()+o.status.slice(1)}</span>
+            ${genderBadge}
+          </div>
+          ${o.customerNote ? `<div style="margin-top:8px;font-size:.8rem;color:var(--muted);font-style:italic">"${o.customerNote}"</div>` : ''}
+        </div>
+      </div>
+
+      <!-- Assign talent row -->
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--border)">
+        <div style="flex:1;min-width:200px">
+          <label style="display:block;font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">
+            Pilih Talent
+          </label>
+          <select id="sel-${o.id}"
+            style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--r);font-family:'Nunito',sans-serif;font-size:.88rem;font-weight:600;outline:none">
+            <option value="">— Pilih Talent —</option>
+            ${talentOptions}
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end;padding-top:18px">
+          <button class="btn btn-pink" onclick="openAssignModal('${o.id}')">
+            ✅ Assign
+          </button>
+          <button class="btn btn-red btn-sm" onclick="skipOrder('${o.id}')" title="Tandai selesai tanpa assign">
+            Lewati
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openAssignModal(orderId) {
+  const sel = document.getElementById('sel-' + orderId);
+  if (!sel.value) { toast('❌ Pilih talent dulu!'); return; }
+
+  const [talentId, talentName] = sel.value.split('|');
+  const order = DB.getOrders().find(o => o.id === orderId);
+
+  pendingAssign = { orderId, talentId: parseInt(talentId), talentName };
+
+  document.getElementById('assign-desc').innerHTML = `
+    Assign order <strong style="color:var(--pink)">#${orderId.slice(-8)}</strong>
+    milik <strong>${order?.customerName}</strong> ke talent
+    <strong style="color:var(--pink)">${talentName}</strong>?<br><br>
+    <span style="font-size:.82rem;color:var(--muted)">
+      Setelah di-assign, orderan akan masuk ke rekap talent ini.
+    </span>
+  `;
+  document.getElementById('assign-modal').classList.add('open');
+}
+
+function closeAssignModal() {
+  document.getElementById('assign-modal').classList.remove('open');
+  pendingAssign = null;
+}
+
+function confirmAssign() {
+  if (!pendingAssign) return;
+  const { orderId, talentId, talentName } = pendingAssign;
+  DB.assignTalent(orderId, talentId, talentName);
+  closeAssignModal();
+  toast(`✅ Order berhasil di-assign ke ${talentName}!`);
+  render();
+}
+
+function skipOrder(orderId) {
+  if (confirm('Lewati order ini? Order akan tetap ada tapi tidak masuk ke rekap talent.')) {
+    toast('Order dilewati');
+    // Just re-render, order stays unassigned
+  }
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function confirmLeave() {
+  const ok = confirm('Kamu akan kembali ke website.\nSession admin akan otomatis logout. Lanjutkan?');
+  if (ok) DB.setLogin(false);
+  return ok;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  render();
+  document.querySelectorAll('.nav-item').forEach(a => {
+    a.addEventListener('click', () => { if (window.innerWidth <= 768) closeSidebar(); });
+  });
+});
+</script>
+</body>
+</html>
