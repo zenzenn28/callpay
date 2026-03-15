@@ -1,213 +1,142 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Order — CallPay Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="admin.css">
 <script>
-function toggleSidebar(){
-  const sb  = document.querySelector('.sidebar');
-  const ov  = document.getElementById('sidebar-overlay');
-  const btn = document.getElementById('hamburger-btn');
-  const open = sb.classList.toggle('open');
-  ov.classList.toggle('open', open);
-  btn.textContent = open ? '✕' : '☰';
-}
-function closeSidebar(){
-  const sb  = document.querySelector('.sidebar');
-  const ov  = document.getElementById('sidebar-overlay');
-  const btn = document.getElementById('hamburger-btn');
-  if(!sb||!ov||!btn) return;
-  sb.classList.remove('open');
-  ov.classList.remove('open');
-  btn.textContent = '☰';
-}
+function toggleSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;const open=sb.classList.toggle('open');ov.classList.toggle('open',open);btn.textContent=open?'✕':'☰';}
+function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;sb.classList.remove('open');ov.classList.remove('open');btn.textContent='☰';}
 </script>
 </head>
 <body>
-
-<!-- MOBILE TOPBAR -->
-<div class="mobile-topbar">
-  <span class="mobile-logo">CallPay</span>
-  <button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button>
-</div>
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 <div class="app">
+  <div class="mobile-topbar"><span class="mobile-logo">CallPay</span><button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button></div>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
   <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="sidebar-logo-text">CallPay</div>
-      <div class="sidebar-logo-sub">Admin Panel</div>
-    </div>
+    <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">Admin Panel</div></div>
     <nav class="sidebar-nav">
-      <a href="index.html"   class="nav-item"><span class="nav-icon">📊</span>Dashboard</a>
-      <a href="orders.html"  class="nav-item active"><span class="nav-icon">📦</span>Order</a>
+      <a href="index.html"      class="nav-item"><span class="nav-icon">📊</span>Dashboard</a>
+      <a href="orders.html"     class="nav-item active"><span class="nav-icon">📦</span>Order</a>
       <a href="unassigned.html" class="nav-item"><span class="nav-icon">🎯</span>Assign Talent</a>
-      <a href="talents.html" class="nav-item"><span class="nav-icon">👥</span>Talent</a>
-      <a href="settings.html"class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
-      <a href="../index.html" class="nav-item" onclick="return confirmLeave()" title="Kembali ke website (logout otomatis)"><span class="nav-icon">🌐</span>Lihat Website</a>
+      <a href="talents.html"    class="nav-item"><span class="nav-icon">👥</span>Talent</a>
+      <a href="settings.html"   class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
+      <a href="../index.html"   class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
     </nav>
-    <div class="sidebar-footer">
-      <button class="logout-btn" onclick="doLogout()">Logout →</button>
-    </div>
+    <div class="sidebar-footer"><button class="logout-btn" id="logout-btn">Logout →</button></div>
   </aside>
-
   <main class="main">
-    <div class="page-header ph-flex">
-      <div>
-        <h1>Manajemen Order 📦</h1>
-        <p>Kelola semua orderan masuk dari pelanggan</p>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <select id="filter-status" class="btn btn-outline" style="padding:8px 14px;border-radius:99px;font-size:.83rem" onchange="render()">
+    <div class="ph-flex page-header">
+      <div><h1>Order 📦</h1><p>Kelola semua orderan dari pelanggan</p></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+        <select id="filter-status" style="padding:8px 14px;border-radius:99px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.83rem;font-family:'Nunito',sans-serif">
           <option value="">Semua Status</option>
-          <option value="baru">Baru</option>
-          <option value="proses">Proses</option>
-          <option value="selesai">Selesai</option>
-          <option value="batal">Batal</option>
+          <option value="baru">Baru</option><option value="proses">Proses</option>
+          <option value="selesai">Selesai</option><option value="batal">Batal</option>
         </select>
-        <input type="text" id="search" placeholder="Cari nama / talent..." oninput="render()"
-          style="padding:8px 14px;border-radius:99px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.83rem;font-family:'Nunito',sans-serif;outline:none;width:200px">
+        <input type="text" id="search" placeholder="Cari nama / talent..." style="padding:8px 14px;border-radius:99px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.83rem;font-family:'Nunito',sans-serif;outline:none;width:200px">
       </div>
     </div>
-
-    <!-- Summary badges -->
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px" id="summary-badges"></div>
-
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px" id="badges"></div>
     <div class="panel">
       <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th><th>Pelanggan</th><th>WA</th><th>Talent</th>
-              <th>Layanan</th><th>Durasi</th><th>Harga</th>
-              <th>Status</th><th>Sisa Waktu</th><th>Tanggal</th><th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="orders-body"></tbody>
-        </table>
-        <div class="empty" id="empty-state" style="display:none">
-          <div class="empty-icon">📭</div>
-          <p>Tidak ada order ditemukan</p>
-        </div>
+        <table><thead><tr><th>#</th><th>Pelanggan</th><th>WA</th><th>Talent</th><th>Layanan</th><th>Durasi</th><th>Harga</th><th>Status</th><th>Sisa</th><th>Tgl</th><th>Aksi</th></tr></thead>
+        <tbody id="orders-tbody"></tbody></table>
+        <div class="empty" id="empty" style="display:none"><div class="empty-icon">📭</div><p>Tidak ada order</p></div>
       </div>
     </div>
   </main>
 </div>
 
-<!-- CONFIRM DELETE MODAL -->
 <div class="modal-bg" id="del-modal">
   <div class="modal-box">
     <div class="modal-title">🗑️ Hapus Order?</div>
-    <div class="modal-desc">Order ini akan dihapus permanen dan tidak bisa dikembalikan.</div>
+    <div class="modal-desc">Order ini akan dihapus permanen.</div>
     <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeDelModal()">Batal</button>
-      <button class="btn btn-red" onclick="confirmDelete()">Hapus</button>
+      <button class="btn btn-outline" id="del-cancel">Batal</button>
+      <button class="btn btn-red" id="del-confirm">Hapus</button>
     </div>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
-<script src="data.js"></script>
-<script>
-requireAuth();
-function doLogout(){ DB.setLogin(false); window.location.href='index.html'; }
 
-let deleteId = null;
+<script type="module">
+import { DB, DUR_LABEL } from './data.js';
 
-function render(){
-  // Sync status otomatis dulu sebelum render
-  const orders  = DB.syncStatuses();
-  const fStatus = document.getElementById('filter-status').value;
-  const fSearch = document.getElementById('search').value.toLowerCase();
+let allOrders=[], deleteId=null;
 
-  // summary
-  const counts = {baru:0,proses:0,selesai:0,batal:0};
-  orders.forEach(o=>{ if(counts[o.status]!==undefined) counts[o.status]++; });
-  document.getElementById('summary-badges').innerHTML = [
-    {k:'baru',   label:'Baru',   cls:'badge-baru'},
-    {k:'proses', label:'Proses', cls:'badge-proses'},
-    {k:'selesai',label:'Selesai',cls:'badge-selesai'},
-    {k:'batal',  label:'Batal',  cls:'badge-batal'},
-  ].map(b=>`<span class="badge ${b.cls}" style="font-size:.8rem;padding:5px 14px">${b.label}: ${counts[b.k]}</span>`).join('');
+document.getElementById('logout-btn').onclick=()=>{DB.setLogin(false);window.location.href='index.html';};
+document.getElementById('back-web').onclick=()=>{if(confirm('Logout dari admin?')){DB.setLogin(false);window.location.href='../index.html';}return false;};
+document.getElementById('filter-status').onchange=()=>render(allOrders);
+document.getElementById('search').oninput=()=>render(allOrders);
+document.getElementById('del-cancel').onclick=()=>{document.getElementById('del-modal').classList.remove('open');deleteId=null;};
+document.getElementById('del-confirm').onclick=async()=>{
+  if(!deleteId)return;
+  await DB.deleteOrder(deleteId);
+  document.getElementById('del-modal').classList.remove('open');
+  deleteId=null; toast('Order dihapus 🗑️');
+};
 
-  // filter
-  let filtered = orders;
-  if(fStatus) filtered = filtered.filter(o=>o.status===fStatus);
-  if(fSearch) filtered = filtered.filter(o=>
-    o.customerName?.toLowerCase().includes(fSearch) ||
-    o.talentName?.toLowerCase().includes(fSearch) ||
-    o.service?.toLowerCase().includes(fSearch)
-  );
+function render(orders){
+  allOrders=orders;
+  const fs=document.getElementById('filter-status').value;
+  const sq=document.getElementById('search').value.toLowerCase();
+  const counts={baru:0,proses:0,selesai:0,batal:0};
+  orders.forEach(o=>{if(counts[o.status]!==undefined)counts[o.status]++;});
+  document.getElementById('badges').innerHTML=[
+    {k:'baru',l:'Baru',c:'badge-baru'},{k:'proses',l:'Proses',c:'badge-proses'},
+    {k:'selesai',l:'Selesai',c:'badge-selesai'},{k:'batal',l:'Batal',c:'badge-batal'},
+  ].map(b=>`<span class="badge ${b.c}" style="font-size:.8rem;padding:5px 14px">${b.l}: ${counts[b.k]}</span>`).join('');
 
-  const tbody = document.getElementById('orders-body');
-  const empty = document.getElementById('empty-state');
-  if(!filtered.length){ tbody.innerHTML=''; empty.style.display='block'; return; }
+  let filtered=orders;
+  if(fs) filtered=filtered.filter(o=>o.status===fs);
+  if(sq) filtered=filtered.filter(o=>(o.customerName||'').toLowerCase().includes(sq)||(o.talentName||'').toLowerCase().includes(sq)||(o.service||'').toLowerCase().includes(sq));
+
+  const tbody=document.getElementById('orders-tbody'),empty=document.getElementById('empty');
+  if(!filtered.length){tbody.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
-
-  tbody.innerHTML = filtered.map(o=>{
-    const remaining = DB.timeRemaining(o);
-    const isActive  = o.status === 'baru' || o.status === 'proses';
-    const remColor  = o.status==='selesai' ? 'var(--green)'
-                    : o.status==='batal'   ? 'var(--muted)'
-                    : o.status==='proses'  ? 'var(--yellow)'
-                    : 'var(--blue-mid)';
-    return `
-    <tr>
-      <td style="color:var(--muted);font-size:.72rem;font-family:monospace">${o.id.slice(-8)}</td>
-      <td><div style="font-weight:800">${o.customerName}</div><div style="font-size:.75rem;color:var(--muted)">${o.customerNote||''}</div></td>
-      <td><a href="https://wa.me/${o.customerWa?.replace(/\D/g,'')}" target="_blank" style="color:var(--blue);font-size:.82rem">${o.customerWa}</a></td>
-      <td>${o.talentName}</td>
-      <td>${o.service}</td>
-      <td>${DUR_LABEL[o.duration]||o.duration+' mnt'}</td>
-      <td style="font-weight:800;color:var(--pink)">${DB.formatRp(o.price)}</td>
-      <td><span class="badge badge-${o.status}">${o.status.charAt(0).toUpperCase()+o.status.slice(1)}</span></td>
-      <td style="font-size:.8rem;font-weight:700;color:${remColor}">${remaining}</td>
+  tbody.innerHTML=filtered.map(o=>{
+    const rem=DB.timeRemaining(o);
+    const rc=o.status==='selesai'?'var(--green)':o.status==='proses'?'var(--yellow)':o.status==='batal'?'var(--muted)':'var(--blue-mid)';
+    const isActive=['baru','proses'].includes(o.status);
+    return `<tr>
+      <td style="color:var(--muted);font-size:.72rem;font-family:monospace">${(o.id||'').slice(-8)}</td>
+      <td><div style="font-weight:800">${o.customerName||'-'}</div><div style="font-size:.72rem;color:var(--muted)">${o.customerNote||''}</div></td>
+      <td style="font-size:.82rem;color:var(--blue)">${o.customerWa||'-'}</td>
+      <td>${o.talentName||'<i style="color:var(--muted)">Unassigned</i>'}</td>
+      <td>${o.service||'-'}</td>
+      <td>${DUR_LABEL[o.duration]||(o.duration+' mnt')}</td>
+      <td style="font-weight:800;color:var(--pink)">${DB.formatRp(o.price||0)}</td>
+      <td><span class="badge badge-${o.status}">${o.status}</span></td>
+      <td style="font-size:.78rem;font-weight:700;color:${rc}">${rem}</td>
       <td style="color:var(--muted);font-size:.78rem">${DB.formatDate(o.date)}</td>
-      <td>
-        <button class="btn btn-icon btn-red" onclick="openDelModal('${o.id}')" title="Hapus">🗑️</button>
-        ${isActive ? `<button class="btn btn-icon btn-outline" style="margin-left:4px" onclick="manualBatal('${o.id}')" title="Batalkan">✕</button>` : ''}
+      <td style="display:flex;gap:6px">
+        <select onchange="changeStatus('${o.id}',this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:4px 6px;font-size:.75rem;font-family:'Nunito',sans-serif">
+          ${['baru','proses','selesai','batal'].map(s=>`<option value="${s}"${o.status===s?' selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+        </select>
+        <button class="btn btn-icon btn-red" onclick="openDel('${o.id}')">🗑️</button>
       </td>
     </tr>`;
   }).join('');
 }
 
-function manualBatal(id){
-  if(confirm('Batalkan order ini?')){
-    DB.updateOrderStatus(id,'batal');
-    toast('Order dibatalkan');
-    render();
-  }
-}
+window.changeStatus=async(id,status)=>{ await DB.updateOrderStatus(id,status); toast('Status diperbarui ✅'); };
+window.openDel=(id)=>{ deleteId=id; document.getElementById('del-modal').classList.add('open'); };
 
-function changeStatus(id, status){
-  DB.updateOrderStatus(id, status);
-  toast('Status diperbarui ✅');
-  render();
-}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
-function openDelModal(id){ deleteId=id; document.getElementById('del-modal').classList.add('open'); }
-function closeDelModal(){ document.getElementById('del-modal').classList.remove('open'); deleteId=null; }
-function confirmDelete(){ if(deleteId){ DB.deleteOrder(deleteId); closeDelModal(); toast('Order dihapus 🗑️'); render(); } }
-
-function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
-
-document.addEventListener('DOMContentLoaded', () => {
-  render();
-  // Auto-refresh setiap 30 detik untuk update status & sisa waktu
-  setInterval(render, 30000);
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded',function(){
-  document.querySelectorAll('.nav-item').forEach(function(a){
-    a.addEventListener('click',function(){
-      if(window.innerWidth<=768) closeSidebar();
-    });
+document.addEventListener('DOMContentLoaded',async()=>{
+  if(!DB.isLoggedIn()){window.location.href='index.html';return;}
+  await DB.getSettingsAsync();
+  // Realtime
+  DB.onOrdersChange(async orders=>{
+    const synced=await DB.syncStatuses();
+    render(synced.length?synced:orders);
   });
+  document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{if(window.innerWidth<=768)closeSidebar();}));
 });
 </script>
 </body>

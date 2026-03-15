@@ -355,21 +355,6 @@
 </div>
 
 
-<script>
-// Bersihkan settings lama yang masih pakai nomor placeholder
-(function(){
-  try {
-    const s = localStorage.getItem('cp_settings');
-    if (s) {
-      const obj = JSON.parse(s);
-      if (!obj.waNumber || obj.waNumber.includes('xxxxxxxxxx')) {
-        localStorage.removeItem('cp_settings');
-      }
-    }
-  } catch(e) {}
-})();
-</script>
-<script src="admin/data.js"></script>
-<script src="script.js"></script>
+<script type="module" src="script.js"></script>
 </body>
 </html>

@@ -1,173 +1,101 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Talent — CallPay Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="admin.css">
   <style>
-    .talent-row {
-      display: grid;
-      grid-template-columns: 48px 1fr 120px 150px 24px;
-      align-items: center;
-      gap: 16px;
-      padding: 14px 18px;
-      border-radius: var(--r);
-      border: 1px solid var(--border);
-      background: var(--surface);
-      margin-bottom: 10px;
-      transition: all .2s;
-      cursor: pointer;
-    }
-    .talent-row:hover { border-color: var(--border-pk); background: var(--surface2); }
-    .talent-row img { width:48px; height:48px; border-radius:10px; object-fit:cover; object-position:top; }
-    .tr-name { font-weight:900; font-size:.95rem; margin-bottom:3px; }
-    .tr-meta { font-size:.77rem; color:var(--muted); font-weight:600; }
-    .tr-stats { text-align:right; }
-    .tr-stat-val { font-weight:900; font-size:1rem; color:var(--pink); }
-    .tr-stat-val.green { color: var(--green); }
-    .tr-stat-lbl { font-size:.7rem; color:var(--muted); font-weight:700; margin-top:1px; }
-    .tr-arrow { text-align:center; color:var(--muted); font-size:1.1rem; }
-    .gender-badge { display:inline-block; padding:2px 10px; border-radius:99px; font-size:.7rem; font-weight:800; }
-    .gb-f { background:rgba(249,168,201,.1); color:var(--pink); border:1px solid var(--border-pk); }
-    .gb-m { background:rgba(168,213,249,.1); color:var(--blue); border:1px solid var(--border-bl); }
+    .talent-row{display:grid;grid-template-columns:48px 1fr 120px 150px 24px;align-items:center;gap:16px;padding:14px 18px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);margin-bottom:10px;transition:all .2s;cursor:pointer;}
+    .talent-row:hover{border-color:var(--border-pk);background:var(--surface2)}
+    .talent-row img{width:48px;height:48px;border-radius:10px;object-fit:cover;object-position:top}
+    .tr-name{font-weight:900;font-size:.95rem;margin-bottom:3px}
+    .tr-meta{font-size:.77rem;color:var(--muted);font-weight:600}
+    .tr-stats{text-align:right}
+    .tr-stat-val{font-weight:900;font-size:1rem;color:var(--pink)}
+    .tr-stat-val.green{color:var(--green)}
+    .tr-stat-lbl{font-size:.7rem;color:var(--muted);font-weight:700;margin-top:1px}
+    .tr-arrow{text-align:center;color:var(--muted);font-size:1.1rem}
+    .gender-badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.7rem;font-weight:800}
+    .gb-f{background:rgba(249,168,201,.1);color:var(--pink);border:1px solid var(--border-pk)}
+    .gb-m{background:rgba(168,213,249,.1);color:var(--blue);border:1px solid var(--border-bl)}
+    @media(max-width:768px){.talent-row{grid-template-columns:44px 1fr auto!important;gap:10px}.tr-stats:last-of-type{display:none}}
   </style>
 <script>
-function toggleSidebar(){
-  const sb  = document.querySelector('.sidebar');
-  const ov  = document.getElementById('sidebar-overlay');
-  const btn = document.getElementById('hamburger-btn');
-  const open = sb.classList.toggle('open');
-  ov.classList.toggle('open', open);
-  btn.textContent = open ? '✕' : '☰';
-}
-function closeSidebar(){
-  const sb  = document.querySelector('.sidebar');
-  const ov  = document.getElementById('sidebar-overlay');
-  const btn = document.getElementById('hamburger-btn');
-  if(!sb||!ov||!btn) return;
-  sb.classList.remove('open');
-  ov.classList.remove('open');
-  btn.textContent = '☰';
-}
+function toggleSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;const open=sb.classList.toggle('open');ov.classList.toggle('open',open);btn.textContent=open?'✕':'☰';}
+function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;sb.classList.remove('open');ov.classList.remove('open');btn.textContent='☰';}
 </script>
 </head>
 <body>
-
-<!-- MOBILE TOPBAR -->
-<div class="mobile-topbar">
-  <span class="mobile-logo">CallPay</span>
-  <button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button>
-</div>
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 <div class="app">
+  <div class="mobile-topbar"><span class="mobile-logo">CallPay</span><button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button></div>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
   <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="sidebar-logo-text">CallPay</div>
-      <div class="sidebar-logo-sub">Admin Panel</div>
-    </div>
+    <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">Admin Panel</div></div>
     <nav class="sidebar-nav">
-      <a href="index.html"   class="nav-item"><span class="nav-icon">📊</span>Dashboard</a>
-      <a href="orders.html"      class="nav-item"><span class="nav-icon">📦</span>Order</a>
-      <a href="unassigned.html"  class="nav-item"><span class="nav-icon">🎯</span>Assign Talent</a>
-      <a href="talents.html"     class="nav-item active"><span class="nav-icon">👥</span>Talent</a>
-      <a href="settings.html"class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
-      <a href="../index.html" class="nav-item" onclick="return confirmLeave()" title="Kembali ke website (logout otomatis)"><span class="nav-icon">🌐</span>Lihat Website</a>
+      <a href="index.html"      class="nav-item"><span class="nav-icon">📊</span>Dashboard</a>
+      <a href="orders.html"     class="nav-item"><span class="nav-icon">📦</span>Order</a>
+      <a href="unassigned.html" class="nav-item"><span class="nav-icon">🎯</span>Assign Talent</a>
+      <a href="talents.html"    class="nav-item active"><span class="nav-icon">👥</span>Talent</a>
+      <a href="settings.html"   class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
+      <a href="../index.html"   class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
     </nav>
-    <div class="sidebar-footer">
-      <button class="logout-btn" onclick="doLogout()">Logout →</button>
-    </div>
+    <div class="sidebar-footer"><button class="logout-btn" id="logout-btn">Logout →</button></div>
   </aside>
-
   <main class="main">
-    <div class="page-header">
-      <h1>Daftar Talent 👥</h1>
-      <p>Klik nama talent untuk melihat statistik & rekap pendapatan</p>
-    </div>
-
+    <div class="page-header"><h1>Daftar Talent 👥</h1><p>Klik nama talent untuk melihat statistik & rekap</p></div>
     <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
-      <button class="btn btn-pink filt active" onclick="setFilt('all',this)">Semua</button>
+      <button class="btn btn-pink filt" onclick="setFilt('all',this)">Semua</button>
       <button class="btn btn-outline filt" onclick="setFilt('female',this)">🌸 Wanita</button>
       <button class="btn btn-outline filt" onclick="setFilt('male',this)">💙 Pria</button>
     </div>
-
-    <div id="talent-list"></div>
+    <div id="talent-list"><p style="color:var(--muted)">Memuat data...</p></div>
   </main>
 </div>
+<script type="module">
+import { DB, TALENTS } from './data.js';
 
-<script src="data.js"></script>
-<script>
-requireAuth();
-function doLogout(){ DB.setLogin(false); window.location.href='index.html'; }
+let allOrders=[], filt='all';
 
-let currentFilt = 'all';
+document.getElementById('logout-btn').onclick=()=>{DB.setLogin(false);window.location.href='index.html';};
+document.getElementById('back-web').onclick=()=>{if(confirm('Logout dari admin?')){DB.setLogin(false);window.location.href='../index.html';}return false;};
 
-function setFilt(v, el){
-  currentFilt = v;
-  document.querySelectorAll('.filt').forEach(b=>{
-    b.className='btn btn-outline filt';
-  });
-  el.className='btn btn-pink filt active';
+window.setFilt=(v,el)=>{
+  filt=v;
+  document.querySelectorAll('.filt').forEach(b=>{b.className='btn btn-outline filt';});
+  el.className='btn btn-pink filt';
   render();
-}
+};
 
 function render(){
-  const orders  = DB.getOrders();
-  const cfg     = DB.getSettings();
-  const cut     = cfg.agencyCut / 100;
-
-  let list = currentFilt==='all' ? TALENTS : TALENTS.filter(t=>t.gender===currentFilt);
-
-  // build stats per talent
-  const stats = {};
-  TALENTS.forEach(t=>{ stats[t.name]={count:0,gross:0}; });
-  orders.forEach(o=>{
-    if(stats[o.talentName]){
-      stats[o.talentName].count++;
-      if(o.status==='selesai') stats[o.talentName].gross += o.price;
-    }
-  });
-
-  // sort by order count desc
-  list = [...list].sort((a,b)=>(stats[b.name]?.count||0)-(stats[a.name]?.count||0));
-
-  document.getElementById('talent-list').innerHTML = list.map(t=>{
-    const st  = stats[t.name]||{count:0,gross:0};
-    const net = Math.round(st.gross*(1-cut));
-    return `
-    <div class="talent-row" onclick="goDetail(${t.id})">
+  const cfg=DB.getSettings();
+  const cut=cfg.agencyCut/100;
+  let list=filt==='all'?TALENTS:TALENTS.filter(t=>t.gender===filt);
+  const stats={};
+  TALENTS.forEach(t=>{stats[t.name]={count:0,gross:0};});
+  allOrders.forEach(o=>{if(stats[o.talentName]){stats[o.talentName].count++;if(o.status==='selesai')stats[o.talentName].gross+=(o.price||0);}});
+  list=[...list].sort((a,b)=>(stats[b.name]?.count||0)-(stats[a.name]?.count||0));
+  document.getElementById('talent-list').innerHTML=list.map(t=>{
+    const st=stats[t.name]||{count:0,gross:0};
+    const net=Math.round(st.gross*(1-cut));
+    return `<div class="talent-row" onclick="window.location.href='talent-detail.html?id=${t.id}'">
       <img src="${t.img}" alt="${t.name}">
-      <div class="tr-info">
-        <div class="tr-name">${t.name} <span class="gender-badge ${t.gender==='female'?'gb-f':'gb-m'}">${t.gender==='female'?'Wanita':'Pria'}</span></div>
-        <div class="tr-meta">Umur ${t.age} thn &nbsp;·&nbsp; ${t.services.join(', ')}</div>
-      </div>
-      <div class="tr-stats">
-        <div class="tr-stat-val">${st.count}</div>
-        <div class="tr-stat-lbl">Total Order</div>
-      </div>
-      <div class="tr-stats">
-        <div class="tr-stat-val green">${DB.formatRp(net)}</div>
-        <div class="tr-stat-lbl">Pendapatan Talent</div>
-      </div>
+      <div><div class="tr-name">${t.name} <span class="gender-badge ${t.gender==='female'?'gb-f':'gb-m'}">${t.gender==='female'?'Wanita':'Pria'}</span></div>
+      <div class="tr-meta">Umur ${t.age} thn · ${t.services.join(', ')}</div></div>
+      <div class="tr-stats"><div class="tr-stat-val">${st.count}</div><div class="tr-stat-lbl">Total Order</div></div>
+      <div class="tr-stats"><div class="tr-stat-val green">${DB.formatRp(net)}</div><div class="tr-stat-lbl">Pendapatan</div></div>
       <div class="tr-arrow">›</div>
     </div>`;
   }).join('');
 }
 
-function goDetail(id){ window.location.href=`talent-detail.html?id=${id}`; }
-
-document.addEventListener('DOMContentLoaded', render);
-</script>
-<script>
-document.addEventListener('DOMContentLoaded',function(){
-  document.querySelectorAll('.nav-item').forEach(function(a){
-    a.addEventListener('click',function(){
-      if(window.innerWidth<=768) closeSidebar();
-    });
-  });
+document.addEventListener('DOMContentLoaded',async()=>{
+  if(!DB.isLoggedIn()){window.location.href='index.html';return;}
+  await DB.getSettingsAsync();
+  DB.onOrdersChange(orders=>{allOrders=orders;render();});
+  document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{if(window.innerWidth<=768)closeSidebar();}));
 });
 </script>
 </body>

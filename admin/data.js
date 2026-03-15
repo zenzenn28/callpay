@@ -1,14 +1,47 @@
 // ============================================================
-//  CALLPAY — SHARED DATA LAYER
-//  Semua baca/tulis data terpusat di sini.
-//  Nanti kalau upgrade backend, cukup ganti fungsi-fungsi ini.
+//  CALLPAY — DATA LAYER (Firebase Firestore)
+//  Data tersimpan di cloud — sync realtime antar semua device
 // ============================================================
 
+// ── FIREBASE CONFIG ───────────────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey            : "AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU",
+  authDomain        : "callpay-28a28.firebaseapp.com",
+  projectId         : "callpay-28a28",
+  storageBucket     : "callpay-28a28.firebasestorage.app",
+  messagingSenderId : "44722427776",
+  appId             : "1:44722427776:web:29d1a297746cd83d685365",
+  measurementId     : "G-9NMYP6KN0N"
+};
+
+// ── FIREBASE INIT ─────────────────────────────────────────────
+import { initializeApp }                          from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getFirestore, collection, doc,
+         addDoc, getDocs, getDoc, setDoc,
+         updateDoc, deleteDoc, query,
+         orderBy, onSnapshot, Timestamp,
+         serverTimestamp }                        from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+const _app = initializeApp(FIREBASE_CONFIG);
+const _db  = getFirestore(_app);
+
+// ── COLLECTIONS ───────────────────────────────────────────────
+const COL_ORDERS   = "orders";
+const COL_SETTINGS = "settings";
+const SETTINGS_DOC = "config";
+
+// ── SESSION (tetap pakai sessionStorage) ─────────────────────
+const SESSION_KEY = 'cp_admin';
+
+// ============================================================
+//  DB OBJECT — sama persis API-nya dengan versi localStorage
+//  sehingga semua halaman admin tidak perlu diubah banyak
+// ============================================================
 const DB = {
-  // ── KEYS ──────────────────────────────────────────────────
-  ORDERS_KEY   : 'cp_orders',
-  SETTINGS_KEY : 'cp_settings',
-  SESSION_KEY  : 'cp_admin',
+
+  // ── SESSION ───────────────────────────────────────────────
+  isLoggedIn() { return sessionStorage.getItem(SESSION_KEY) === '1'; },
+  setLogin(v)  { v ? sessionStorage.setItem(SESSION_KEY,'1') : sessionStorage.removeItem(SESSION_KEY); },
 
   // ── DEFAULT SETTINGS ──────────────────────────────────────
   defaultSettings() {
@@ -18,105 +51,144 @@ const DB = {
       waNumber    : '62895400709371',
       agencyName  : 'CallPay Agency',
       instagram   : '@callpay.id',
-      agencyCut   : 40,   // persen potongan agency
+      agencyCut   : 40,
     };
   },
 
-  // ── SETTINGS ──────────────────────────────────────────────
-  getSettings() {
+  // ── SETTINGS (Firestore + local cache) ────────────────────
+  _settingsCache: null,
+
+  async getSettingsAsync() {
     try {
-      const s = localStorage.getItem(this.SETTINGS_KEY);
-      const merged = s ? { ...this.defaultSettings(), ...JSON.parse(s) } : this.defaultSettings();
-      // Force-update jika nomor WA masih placeholder lama
-      if (!merged.waNumber || merged.waNumber.includes('xxxxxxxxxx')) {
-        merged.waNumber = this.defaultSettings().waNumber;
-        this.saveSettings(merged);
+      const ref  = doc(_db, COL_SETTINGS, SETTINGS_DOC);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        this._settingsCache = { ...this.defaultSettings(), ...snap.data() };
+      } else {
+        // First time — save defaults to Firestore
+        await setDoc(ref, this.defaultSettings());
+        this._settingsCache = this.defaultSettings();
       }
-      return merged;
-    } catch { return this.defaultSettings(); }
-  },
-  saveSettings(obj) {
-    localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(obj));
+    } catch(e) {
+      this._settingsCache = this.defaultSettings();
+    }
+    return this._settingsCache;
   },
 
-  // ── SESSION ───────────────────────────────────────────────
-  isLoggedIn()   { return sessionStorage.getItem(this.SESSION_KEY) === '1'; },
-  setLogin(v)    { v ? sessionStorage.setItem(this.SESSION_KEY,'1') : sessionStorage.removeItem(this.SESSION_KEY); },
+  // Sync version — returns cache (call getSettingsAsync first)
+  getSettings() {
+    return this._settingsCache || this.defaultSettings();
+  },
+
+  async saveSettings(obj) {
+    this._settingsCache = obj;
+    try {
+      const ref = doc(_db, COL_SETTINGS, SETTINGS_DOC);
+      await setDoc(ref, obj);
+    } catch(e) { console.error('saveSettings error:', e); }
+  },
 
   // ── ORDERS ────────────────────────────────────────────────
-  getOrders() {
+
+  async addOrder(order) {
+    const newOrder = {
+      ...order,
+      id        : 'ORD-' + Date.now(),
+      date      : new Date().toISOString(),
+      status    : 'baru',
+      createdAt : serverTimestamp(),
+    };
     try {
-      const raw = localStorage.getItem(this.ORDERS_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch { return []; }
+      const ref = await addDoc(collection(_db, COL_ORDERS), newOrder);
+      newOrder._docId = ref.id;
+    } catch(e) { console.error('addOrder error:', e); }
+    return newOrder;
   },
-  saveOrders(arr) {
-    localStorage.setItem(this.ORDERS_KEY, JSON.stringify(arr));
-  },
-  addOrder(order) {
-    const orders = this.getOrders();
-    order.id     = 'ORD-' + Date.now();
-    order.date   = new Date().toISOString();
-    order.status = 'baru';
-    orders.unshift(order);
-    this.saveOrders(orders);
-    return order;
-  },
-  deleteOrder(id) {
-    this.saveOrders(this.getOrders().filter(o => o.id !== id));
-  },
-  deleteAllOrders() {
-    this.saveOrders([]);
-  },
-  updateOrderStatus(id, status) {
-    const orders = this.getOrders();
-    const o = orders.find(x => x.id === id);
-    if (o) { o.status = status; this.saveOrders(orders); }
-  },
-  // Assign talent ke order yang belum ada talentnya
-  assignTalent(orderId, talentId, talentName) {
-    const orders = this.getOrders();
-    const o = orders.find(x => x.id === orderId);
-    if (o) {
-      o.talentId   = talentId;
-      o.talentName = talentName;
-      o.assignedAt = new Date().toISOString();
-      this.saveOrders(orders);
+
+  async getOrders() {
+    try {
+      const q    = query(collection(_db, COL_ORDERS), orderBy('createdAt','desc'));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+    } catch(e) {
+      console.error('getOrders error:', e);
+      return [];
     }
   },
-  // Order tanpa talent (dari tombol Pesan Sekarang)
-  getUnassignedOrders() {
-    return this.getOrders().filter(o => !o.talentId && !o.talentName);
+
+  async deleteOrder(id) {
+    try {
+      const orders = await this.getOrders();
+      const o = orders.find(x => x.id === id);
+      if (o?._docId) await deleteDoc(doc(_db, COL_ORDERS, o._docId));
+    } catch(e) { console.error('deleteOrder error:', e); }
+  },
+
+  async deleteAllOrders() {
+    try {
+      const snap = await getDocs(collection(_db, COL_ORDERS));
+      const dels = snap.docs.map(d => deleteDoc(doc(_db, COL_ORDERS, d.id)));
+      await Promise.all(dels);
+    } catch(e) { console.error('deleteAllOrders error:', e); }
+  },
+
+  async updateOrderStatus(id, status) {
+    try {
+      const orders = await this.getOrders();
+      const o = orders.find(x => x.id === id);
+      if (o?._docId) await updateDoc(doc(_db, COL_ORDERS, o._docId), { status });
+    } catch(e) { console.error('updateOrderStatus error:', e); }
+  },
+
+  async assignTalent(orderId, talentId, talentName) {
+    try {
+      const orders = await this.getOrders();
+      const o = orders.find(x => x.id === orderId);
+      if (o?._docId) {
+        await updateDoc(doc(_db, COL_ORDERS, o._docId), {
+          talentId, talentName,
+          assignedAt: new Date().toISOString()
+        });
+      }
+    } catch(e) { console.error('assignTalent error:', e); }
+  },
+
+  // ── REALTIME LISTENER ─────────────────────────────────────
+  // Gunakan ini untuk auto-refresh halaman admin
+  onOrdersChange(callback) {
+    const q = query(collection(_db, COL_ORDERS), orderBy('createdAt','desc'));
+    return onSnapshot(q, (snap) => {
+      const orders = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+      callback(orders);
+    });
   },
 
   // ── AUTO STATUS ───────────────────────────────────────────
-  // Hitung status otomatis berdasarkan waktu:
-  // 0 - 5 mnt   → baru
-  // 5 mnt - (5 + durasi) mnt → proses
-  // setelah itu  → selesai
-  // Jika admin sudah manual set 'batal', tidak diubah
   computeStatus(order) {
     if (order.status === 'batal') return 'batal';
-    if (!order.talentId && !order.talentName) return order.status; // unassigned, jangan auto-update
+    if (!order.talentId && !order.talentName) return order.status;
     const now        = Date.now();
     const created    = new Date(order.date).getTime();
     const elapsedMin = (now - created) / 60000;
     const durMin     = Number(order.duration) || 60;
-    if (elapsedMin < 5)              return 'baru';
-    if (elapsedMin < 5 + durMin)     return 'proses';
+    if (elapsedMin < 5)          return 'baru';
+    if (elapsedMin < 5 + durMin) return 'proses';
     return 'selesai';
   },
 
-  // Jalankan auto-status pada semua order & simpan jika ada perubahan
-  syncStatuses() {
-    const orders  = this.getOrders();
-    let changed   = false;
+  async syncStatuses() {
+    const orders = await this.getOrders();
+    const updates = [];
     orders.forEach(o => {
-      if (o.status === 'batal') return; // skip manual batal
+      if (o.status === 'batal') return;
+      if (!o.talentId && !o.talentName) return;
       const computed = this.computeStatus(o);
-      if (o.status !== computed) { o.status = computed; changed = true; }
+      if (o.status !== computed && o._docId) {
+        updates.push(updateDoc(doc(_db, COL_ORDERS, o._docId), { status: computed }));
+        o.status = computed;
+      }
     });
-    if (changed) this.saveOrders(orders);
+    if (updates.length) await Promise.all(updates);
     return orders;
   },
 
@@ -125,11 +197,12 @@ const DB = {
     return 'Rp ' + Number(num).toLocaleString('id-ID');
   },
   formatDate(iso) {
-    return new Date(iso).toLocaleDateString('id-ID', {day:'2-digit',month:'short',year:'numeric'});
+    if (!iso) return '-';
+    return new Date(iso).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
   },
-  // Sisa waktu dalam format string, e.g. "42 mnt lagi" atau "Selesai"
   timeRemaining(order) {
     if (order.status === 'batal') return '—';
+    if (!order.talentId && !order.talentName) return 'Belum di-assign';
     const now        = Date.now();
     const created    = new Date(order.date).getTime();
     const elapsedMin = (now - created) / 60000;
@@ -175,7 +248,8 @@ const PRICES = {
 
 const DUR_LABEL = {30:'30 menit', 60:'60 menit', 90:'90 menit', 120:'2 jam', 180:'3 jam'};
 
-// Auth guard — panggil di tiap halaman admin
 function requireAuth() {
   if (!DB.isLoggedIn()) window.location.href = 'index.html';
 }
+
+export { DB, TALENTS, PRICES, DUR_LABEL, requireAuth };
