@@ -73,6 +73,21 @@ const DB = {
     const o = orders.find(x => x.id === id);
     if (o) { o.status = status; this.saveOrders(orders); }
   },
+  // Assign talent ke order yang belum ada talentnya
+  assignTalent(orderId, talentId, talentName) {
+    const orders = this.getOrders();
+    const o = orders.find(x => x.id === orderId);
+    if (o) {
+      o.talentId   = talentId;
+      o.talentName = talentName;
+      o.assignedAt = new Date().toISOString();
+      this.saveOrders(orders);
+    }
+  },
+  // Order tanpa talent (dari tombol Pesan Sekarang)
+  getUnassignedOrders() {
+    return this.getOrders().filter(o => !o.talentId && !o.talentName);
+  },
 
   // ── AUTO STATUS ───────────────────────────────────────────
   // Hitung status otomatis berdasarkan waktu:
@@ -82,6 +97,7 @@ const DB = {
   // Jika admin sudah manual set 'batal', tidak diubah
   computeStatus(order) {
     if (order.status === 'batal') return 'batal';
+    if (!order.talentId && !order.talentName) return order.status; // unassigned, jangan auto-update
     const now        = Date.now();
     const created    = new Date(order.date).getTime();
     const elapsedMin = (now - created) / 60000;

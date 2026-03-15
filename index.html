@@ -22,9 +22,7 @@
     <li><a href="#talent">Talent</a></li>
     <li><a href="#testimoni">Testimoni</a></li>
   </ul>
-  <button class="nav-cta" onclick="document.getElementById('talent').scrollIntoView({behavior:'smooth'})">
-    Pesan Sekarang
-  </button>
+  <button class="nav-cta" onclick="openQuickOrder()">Pesan Sekarang</button>
 </nav>
 
 <!-- ══ HERO ════════════════════════════════════════════════ -->
@@ -250,6 +248,61 @@
     <path d="M24 4C13 4 4 13 4 24c0 3.6 1 7 2.7 9.9L4 44l10.4-2.7C17.2 43 20.5 44 24 44c11 0 20-9 20-20S35 4 24 4zm0 36c-3.1 0-6.1-.8-8.7-2.4l-.6-.4-6.2 1.6 1.7-6-.4-.6C8.8 30.1 8 27.1 8 24 8 15.2 15.2 8 24 8s16 7.2 16 16-7.2 16-16 16zm8.7-11.8c-.5-.2-2.8-1.4-3.2-1.5-.4-.2-.7-.2-1 .2-.3.4-1.2 1.5-1.4 1.8-.3.3-.5.4-1 .1-.5-.2-2-.7-3.8-2.3-1.4-1.2-2.3-2.8-2.6-3.2-.3-.5 0-.7.2-1 .2-.2.5-.5.7-.8.2-.3.3-.5.4-.8.1-.3 0-.6-.1-.8-.1-.2-1-2.5-1.4-3.4-.4-.9-.8-.8-1-.8h-.9c-.3 0-.8.1-1.2.6-.4.5-1.6 1.6-1.6 3.8s1.7 4.4 1.9 4.7c.2.3 3.3 5.1 8.1 7.1 1.1.5 2 .8 2.7 1 1.1.3 2.2.3 3 .2.9-.1 2.8-1.1 3.2-2.2.4-1.1.4-2 .3-2.2-.2-.3-.5-.4-1-.6z"/>
   </svg>
 </a>
+
+
+<!-- ══ QUICK ORDER MODAL (tanpa pilih talent) ══════════════ -->
+<div class="modal-backdrop" id="quick-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Pesan Layanan</h3>
+      <button class="modal-close-btn" onclick="closeQuickOrder()">✕</button>
+    </div>
+    <div style="background:rgba(249,168,201,.07);border:1px solid var(--border-pink);border-radius:12px;padding:12px 14px;margin-bottom:18px;font-size:.83rem;font-weight:600;color:var(--pink)">
+      💡 Admin kami akan mencarikan talent terbaik untukmu!
+    </div>
+    <div class="form-field">
+      <label>Layanan *</label>
+      <select id="qo-service" onchange="updateQODurations(); updateQOPrice()">
+        <option value="">— Pilih Layanan —</option>
+        <option value="temen-call">📞 Temen Call</option>
+        <option value="sleepcall">🌙 Sleepcall</option>
+        <option value="temen-curhat">🫂 Temen Curhat</option>
+        <option value="pacar-virtual">💕 Pacar Virtual</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>Durasi *</label>
+      <select id="qo-duration" onchange="updateQOPrice()">
+        <option value="">— Pilih Layanan Dulu —</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>Preferensi Talent</label>
+      <select id="qo-gender">
+        <option value="">— Tidak Ada Preferensi —</option>
+        <option value="female">🌸 Wanita</option>
+        <option value="male">💙 Pria</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>Nama Kamu *</label>
+      <input type="text" id="qo-customer" placeholder="Contoh: Rina">
+    </div>
+    <div class="form-field">
+      <label>No. WhatsApp *</label>
+      <input type="text" id="qo-wa" placeholder="08xxxxxxxxxx">
+    </div>
+    <div class="form-field">
+      <label>Catatan (opsional)</label>
+      <textarea id="qo-note" rows="2" placeholder="Ceritakan apa yang kamu inginkan..."></textarea>
+    </div>
+    <div class="price-summary">
+      <span>Total Harga</span>
+      <strong id="qo-price">Pilih layanan &amp; durasi</strong>
+    </div>
+    <button class="submit-order-btn" onclick="submitQuickOrder()">✅ Konfirmasi via WhatsApp</button>
+  </div>
+</div>
 
 <!-- ══ ORDER MODAL ══════════════════════════════════════════ -->
 <div class="modal-backdrop">
