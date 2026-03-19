@@ -335,11 +335,11 @@ button{cursor:pointer;font-family:'Nunito',sans-serif}
 }
 .modal-close-btn:hover{background:rgba(255,255,255,.12)}
 .modal-talent-row{
-  display:flex;align-items:center;gap:13px;
-  background:rgba(255,255,255,.04);border:1px solid var(--border);
-  border-radius:var(--radius);padding:12px 13px;margin-bottom:18px;
+  display:flex;align-items:center;gap:14px;
+  background:rgba(249,168,201,.06);border:1px solid var(--border-pink);
+  border-radius:var(--radius);padding:14px 15px;margin-bottom:18px;
 }
-.modal-talent-row img{width:52px;height:52px;border-radius:10px;object-fit:cover;object-position:center top}
+.modal-talent-row img{width:64px;height:64px;border-radius:14px;object-fit:cover;object-position:center top;border:2px solid var(--border-pink)}
 .modal-tname{font-weight:900;font-size:.92rem}
 .modal-tmeta{font-size:.77rem;color:var(--text-muted);font-weight:600}
 .form-field{margin-bottom:12px}
