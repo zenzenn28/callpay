@@ -98,8 +98,6 @@ window.openModal = function(id) {
   document.getElementById('modal-tmeta').textContent = `${activeTalent.age} tahun · Indonesia`;
   document.getElementById('modal-service').value     = '';
   document.getElementById('modal-duration').innerHTML = '<option value="">— Pilih Layanan Dulu —</option>';
-  document.getElementById('modal-customer').value    = '';
-  document.getElementById('modal-wa').value          = '';
   document.getElementById('modal-note').value        = '';
   document.getElementById('modal-price').textContent = 'Pilih layanan & durasi';
   document.querySelector('.modal-backdrop').classList.add('open');
@@ -138,33 +136,30 @@ window.updateModalPrice = function() {
 window.submitOrder = async function() {
   const svcEl  = document.getElementById('modal-service');
   const durEl  = document.getElementById('modal-duration');
-  const name   = document.getElementById('modal-customer').value.trim();
-  const wa     = document.getElementById('modal-wa').value.trim();
   const note   = document.getElementById('modal-note').value.trim();
-  if (!svcEl.value || !durEl.value || !name || !wa) { alert('Mohon lengkapi semua field!'); return; }
+  if (!svcEl.value || !durEl.value) { alert('Mohon pilih layanan dan durasi!'); return; }
   const dur      = parseInt(durEl.value);
   const svcLabel = SVC_KEY_TO_LABEL[svcEl.value];
   const durLabel = DUR_LABEL[dur] || durEl.options[durEl.selectedIndex].text;
   const price    = PRICES[svcLabel]?.[dur] ?? 0;
 
+  // Simpan ke Firebase dengan nama talent sudah ada
   const saved = await DB.addOrder({
     talentId:activeTalent.id, talentName:activeTalent.name,
     service:svcLabel, duration:dur, price,
-    customerName:name, customerWa:wa, customerNote:note,
+    customerName: null, customerWa: null, customerNote: note,
     orderType:'talent',
   });
 
-  const cfg    = DB.getSettings();
-  const waNum  = cfg.waNumber || '62895400709371';
-  const masWA  = maskWA(wa);
-  const lines  = [
+  const cfg   = DB.getSettings();
+  const waNum = cfg.waNumber || '62895400709371';
+  const lines = [
     `Halo ${cfg.agencyName}! Saya mau pesan layanan 💕`,``,
     `━━━━━━━━━━━━━━━━━━━`,`📋 DETAIL ORDER`,`━━━━━━━━━━━━━━━━━━━`,
     `👤 Talent  : ${activeTalent.name}`,`💼 Layanan : ${svcLabel}`,
     `⏱ Durasi  : ${durLabel}`,`💰 Harga   : Rp ${price.toLocaleString('id-ID')}`,
-    `━━━━━━━━━━━━━━━━━━━`,`📝 DATA PEMESAN`,`━━━━━━━━━━━━━━━━━━━`,
-    `Nama   : ${name}`,`No. WA : ${masWA}`,
-    note?`Catatan: ${note}`:null,``,`ID Order: ${(saved.id||'').slice(-8)}`,`Terima kasih! 🙏`,
+    note?`Catatan: ${note}`:null,``,
+    `ID Order: ${(saved.id||'').slice(-8)}`,`Terima kasih! 🙏`,
   ].filter(l=>l!==null).join('\n');
 
   window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(lines)}`, '_blank');
@@ -179,8 +174,6 @@ window.openQuickOrder = function() {
   document.getElementById('qo-service').value   = '';
   document.getElementById('qo-duration').innerHTML = '<option value="">— Pilih Layanan Dulu —</option>';
   document.getElementById('qo-gender').value    = '';
-  document.getElementById('qo-customer').value  = '';
-  document.getElementById('qo-wa').value        = '';
   document.getElementById('qo-note').value      = '';
   document.getElementById('qo-price').textContent = 'Pilih layanan & durasi';
   document.getElementById('quick-modal').classList.add('open');
@@ -220,34 +213,31 @@ window.submitQuickOrder = async function() {
   const svcEl  = document.getElementById('qo-service');
   const durEl  = document.getElementById('qo-duration');
   const gender = document.getElementById('qo-gender').value;
-  const name   = document.getElementById('qo-customer').value.trim();
-  const wa     = document.getElementById('qo-wa').value.trim();
   const note   = document.getElementById('qo-note').value.trim();
-  if (!svcEl.value || !durEl.value || !name || !wa) { alert('Mohon lengkapi semua field!'); return; }
+  if (!svcEl.value || !durEl.value) { alert('Mohon pilih layanan dan durasi!'); return; }
   const dur      = parseInt(durEl.value);
   const svcLabel = SVC_KEY_TO_LABEL[svcEl.value];
   const durLabel = DUR_LABEL[dur] || durEl.options[durEl.selectedIndex].text;
   const price    = PRICES[svcLabel]?.[dur] ?? 0;
 
+  // Simpan tanpa talent — masuk unassigned
   const saved = await DB.addOrder({
     talentId:null, talentName:null, genderPref:gender||null,
     service:svcLabel, duration:dur, price,
-    customerName:name, customerWa:wa, customerNote:note,
+    customerName:null, customerWa:null, customerNote:note,
     orderType:'quick',
   });
 
   const cfg   = DB.getSettings();
   const waNum = cfg.waNumber || '62895400709371';
-  const masWA = maskWA(wa);
   const lines = [
     `Halo ${cfg.agencyName}! Saya mau pesan layanan 💕`,``,
     `━━━━━━━━━━━━━━━━━━━`,`📋 DETAIL ORDER`,`━━━━━━━━━━━━━━━━━━━`,
     `💼 Layanan : ${svcLabel}`,`⏱ Durasi  : ${durLabel}`,
     `💰 Harga   : Rp ${price.toLocaleString('id-ID')}`,
     gender?`👤 Preferensi: ${gender==='female'?'Wanita 🌸':'Pria 💙'}`:null,
-    `━━━━━━━━━━━━━━━━━━━`,`📝 DATA PEMESAN`,`━━━━━━━━━━━━━━━━━━━`,
-    `Nama   : ${name}`,`No. WA : ${masWA}`,
-    note?`Catatan: ${note}`:null,``,`ID Order: ${(saved.id||'').slice(-8)}`,`Terima kasih! 🙏`,
+    note?`Catatan: ${note}`:null,``,
+    `ID Order: ${(saved.id||'').slice(-8)}`,`Terima kasih! 🙏`,
   ].filter(l=>l!==null).join('\n');
 
   window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(lines)}`, '_blank');

@@ -43,7 +43,7 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px" id="badges"></div>
     <div class="panel">
       <div class="table-wrap">
-        <table><thead><tr><th>#</th><th>Pelanggan</th><th>WA</th><th>Talent</th><th>Layanan</th><th>Durasi</th><th>Harga</th><th>Status</th><th>Sisa</th><th>Tgl</th><th>Aksi</th></tr></thead>
+        <table><thead><tr><th>#</th><th>Talent</th><th>Layanan</th><th>Durasi</th><th>Harga</th><th>Status</th><th>Sisa</th><th>Tgl</th><th>Aksi</th></tr></thead>
         <tbody id="orders-tbody"></tbody></table>
         <div class="empty" id="empty" style="display:none"><div class="empty-icon">📭</div><p>Tidak ada order</p></div>
       </div>
@@ -104,8 +104,6 @@ function render(orders){
     const isActive=['baru','proses'].includes(o.status);
     return `<tr>
       <td style="color:var(--muted);font-size:.72rem;font-family:monospace">${(o.id||'').slice(-8)}</td>
-      <td><div style="font-weight:800">${o.customerName||'-'}</div><div style="font-size:.72rem;color:var(--muted)">${o.customerNote||''}</div></td>
-      <td style="font-size:.82rem;color:var(--blue)">${o.customerWa||'-'}</td>
       <td>${o.talentName||'<i style="color:var(--muted)">Unassigned</i>'}</td>
       <td>${o.service||'-'}</td>
       <td>${DUR_LABEL[o.duration]||(o.duration+' mnt')}</td>

@@ -100,10 +100,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
       <div class="panel">
         <h3>🗂️ Riwayat Orderan</h3>
         ${myOrders.length?`<div class="table-wrap"><table>
-          <thead><tr><th>ID</th><th>Pelanggan</th><th>Layanan</th><th>Durasi</th><th>Harga</th><th>Status</th><th>Tgl</th></tr></thead>
+          <thead><tr><th>ID</th><th>Layanan</th><th>Durasi</th><th>Harga</th><th>Status</th><th>Tgl</th></tr></thead>
           <tbody>${myOrders.map(o=>`<tr>
             <td style="color:var(--muted);font-size:.72rem;font-family:monospace">${(o.id||'').slice(-8)}</td>
-            <td>${o.customerName||'-'}</td><td>${o.service||'-'}</td>
+            <td>${o.service||'-'}</td>
             <td>${DUR_LABEL[o.duration]||(o.duration+' mnt')}</td>
             <td style="color:var(--pink);font-weight:800">${DB.formatRp(o.price||0)}</td>
             <td><span class="badge badge-${o.status}">${o.status}</span></td>

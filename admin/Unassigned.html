@@ -96,14 +96,14 @@ function render(orders){
     return `<div class="panel" style="margin-bottom:16px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
         <div>
-          <div style="font-weight:900;font-size:1rem;margin-bottom:4px">${o.customerName||'-'} <span style="font-size:.72rem;color:var(--muted);font-family:monospace">#${(o.id||'').slice(-8)}</span></div>
+          <div style="font-weight:900;font-size:1rem;margin-bottom:4px">Order <span style="font-size:.72rem;color:var(--muted);font-family:monospace">#${(o.id||'').slice(-8)}</span></div>
           <div style="font-size:.82rem;color:var(--muted);font-weight:600;margin-bottom:6px">📅 ${DB.formatDate(o.date)} · 💼 ${o.service||'-'} · ⏱ ${DUR_LABEL[o.duration]||(o.duration+' mnt')}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <span style="font-weight:800;color:var(--pink)">${DB.formatRp(o.price||0)}</span>
             <span class="badge badge-${o.status}">${o.status}</span>
             ${gb}
           </div>
-          ${o.customerNote?`<div style="margin-top:8px;font-size:.8rem;color:var(--muted);font-style:italic">"${o.customerNote}"</div>`:''}
+          ${o.customerNote?`<div style="margin-top:8px;font-size:.8rem;color:var(--muted);font-style:italic">📝 ${o.customerNote}</div>`:''}
         </div>
       </div>
       <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--border)">
