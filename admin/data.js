@@ -91,11 +91,14 @@ const DB = {
   // ── ORDERS ────────────────────────────────────────────────
 
   async addOrder(order) {
+    // Quick orders go to waiting_bid, talent orders go to baru
+    const initStatus = (order.orderType === 'quick' && !order.talentId) ? 'waiting_bid' : 'baru';
     const newOrder = {
       ...order,
       id        : 'ORD-' + Date.now(),
       date      : new Date().toISOString(),
-      status    : 'baru',
+      status    : initStatus,
+      bids      : [],
       createdAt : serverTimestamp(),
     };
     try {

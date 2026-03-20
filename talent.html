@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Talent Portal — CallPay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="talent.css">
+</head>
+<body>
+
+<!-- ══ LOGIN ════════════════════════════════════════════════ -->
+<div class="login-page" id="login-page">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-logo">CallPay</div>
+      <div class="login-sub">Talent Portal</div>
+    </div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="t-user" placeholder="Username kamu" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="t-pass" placeholder="Password kamu" autocomplete="current-password">
+    </div>
+    <p class="login-err" id="t-err"></p>
+    <button class="login-submit" id="t-login-btn">Masuk</button>
+    <p class="login-hint">
+      <a href="index.html" style="color:var(--pink)">← Kembali ke website</a>
+    </p>
+  </div>
+</div>
+
+<!-- ══ DASHBOARD ═════════════════════════════════════════════ -->
+<div class="dashboard" id="dashboard">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-logo">CallPay</div>
+    <div class="topbar-user">
+      <div class="talent-avatar" id="t-avatar">N</div>
+      <div class="talent-name-top" id="t-name-top">Talent</div>
+      <button class="logout-btn-top" id="t-logout-btn">Logout</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="dash-content">
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <div class="status-dot online" id="status-dot"></div>
+      <div class="status-text" id="status-text">Memuat status...</div>
+      <button class="status-toggle active" id="status-toggle">Set Offline</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-incoming">📥 Order Masuk</button>
+      <button class="tab-btn" id="tab-assigned">📋 Orderanku</button>
+    </div>
+
+    <!-- Incoming orders -->
+    <div id="incoming-section">
+      <div id="incoming-list">
+        <div class="empty"><div class="empty-icon">⏳</div><p>Memuat order...</p></div>
+      </div>
+    </div>
+
+    <!-- My assigned orders -->
+    <div id="myorders-section" style="display:none">
+      <div id="my-orders-list">
+        <div class="empty"><div class="empty-icon">📋</div><p>Memuat orderan...</p></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="talent-app.js"></script>
+</body>
+</html>
