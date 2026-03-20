@@ -250,6 +250,7 @@
 </a>
 
 
+
 <!-- ══ QUICK ORDER MODAL (tanpa pilih talent) ══════════════ -->
 <div class="modal-backdrop" id="quick-modal">
   <div class="modal-box">
@@ -262,7 +263,7 @@
     </div>
     <div class="form-field">
       <label>Layanan *</label>
-      <select id="qo-service" onchange="updateQODurations(); updateQOPrice()">
+      <select id="qo-service" onchange="updateQODurations(); updateQOPrice(); updateQOQris()">
         <option value="">— Pilih Layanan —</option>
         <option value="temen-call">📞 Temen Call</option>
         <option value="sleepcall">🌙 Sleepcall</option>
@@ -272,7 +273,7 @@
     </div>
     <div class="form-field">
       <label>Durasi *</label>
-      <select id="qo-duration" onchange="updateQOPrice()">
+      <select id="qo-duration" onchange="updateQOPrice(); updateQOQris()">
         <option value="">— Pilih Layanan Dulu —</option>
       </select>
     </div>
@@ -292,12 +293,48 @@
       <span>Total Harga</span>
       <strong id="qo-price">Pilih layanan &amp; durasi</strong>
     </div>
-    <button class="submit-order-btn" onclick="submitQuickOrder()">✅ Konfirmasi via WhatsApp</button>
+    <!-- QRIS -->
+    <div id="qo-qris" style="display:none">
+      <div style="text-align:center;padding:8px 0 4px">
+        <div style="font-size:.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">💳 Pembayaran via QRIS</div>
+        <div style="background:white;border-radius:16px;padding:14px;display:inline-block;box-shadow:0 4px 20px rgba(0,0,0,.3)">
+          <img src="assets/qris.png" alt="QRIS CallPay" style="width:180px;height:180px;display:block">
+        </div>
+        <div style="margin-top:10px;font-size:.82rem;font-weight:700;color:var(--text)">CallPay</div>
+        <div style="font-size:.78rem;color:var(--text-muted);font-weight:600;margin-top:2px">Scan QR di atas untuk membayar</div>
+        <div id="qo-amount" style="font-size:1.1rem;font-weight:900;color:var(--pink);margin-top:8px"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;margin-top:14px;padding:12px 14px;background:rgba(61,214,140,.06);border:1px solid rgba(61,214,140,.2);border-radius:10px;cursor:pointer">
+        <input type="checkbox" id="qo-paid" onchange="toggleQOConfirm()" style="width:18px;height:18px;accent-color:var(--pink);cursor:pointer;flex-shrink:0">
+        <span style="font-size:.83rem;font-weight:700;color:var(--text)">Saya sudah melakukan pembayaran</span>
+      </label>
+    </div>
+    <!-- Ketentuan Layanan — scroll box + checkbox -->
+    <div style="margin-top:14px">
+      <div style="font-size:.73rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">📋 Ketentuan Layanan</div>
+      <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;max-height:130px;overflow-y:auto;font-size:.82rem;font-weight:600;color:var(--text-muted);line-height:1.75">
+        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">①</span><span>Dilarang membahas topik <strong style="color:var(--text)">sensitif, SARA, dan berbau seksual</strong> dalam bentuk apapun.</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">②</span><span>Dilarang melakukan <strong style="color:var(--text)">pembayaran di luar agensi</strong>. Semua transaksi wajib melalui CallPay.</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">③</span><span>Dilarang <strong style="color:var(--text)">meminta kontak pribadi</strong> talent (nomor HP, media sosial, dll).</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">④</span><span>Dilarang <strong style="color:var(--text)">melecehkan, mengancam, atau bersikap tidak sopan</strong> kepada talent.</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">⑤</span><span>Layanan <strong style="color:var(--text)">tidak dapat di-refund</strong> apabila sesi sudah dimulai.</span></div>
+        <div style="display:flex;gap:8px"><span style="color:var(--pink);flex-shrink:0">⑥</span><span>Pelanggaran ketentuan mengakibatkan <strong style="color:var(--text)">pemblokiran permanen</strong>.</span></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;margin-top:10px;cursor:pointer">
+        <input type="checkbox" id="qo-agree" onchange="toggleQOConfirm()" style="width:17px;height:17px;accent-color:var(--pink);cursor:pointer;flex-shrink:0">
+        <span style="font-size:.82rem;font-weight:700;color:var(--text)">Saya sudah membaca dan menyetujui peraturan di atas</span>
+      </label>
+    </div>
+    <button class="submit-order-btn" id="qo-confirm-btn" onclick="submitQuickOrder()" disabled style="opacity:.4;cursor:not-allowed;margin-top:14px">
+      ✅ Konfirmasi via WhatsApp
+    </button>
   </div>
 </div>
 
+
+
 <!-- ══ ORDER MODAL ══════════════════════════════════════════ -->
-<div class="modal-backdrop">
+<div class="modal-backdrop" id="talent-modal">
   <div class="modal-box">
     <div class="modal-head">
       <h3>Pesan Layanan</h3>
@@ -314,7 +351,7 @@
     </div>
     <div class="form-field">
       <label>Layanan *</label>
-      <select id="modal-service" onchange="updateDurations(); updateModalPrice()">
+      <select id="modal-service" onchange="updateDurations(); updateModalPrice(); updateModalQris()">
         <option value="">— Pilih Layanan —</option>
         <option value="temen-call">📞 Temen Call</option>
         <option value="sleepcall">🌙 Sleepcall</option>
@@ -324,7 +361,7 @@
     </div>
     <div class="form-field">
       <label>Durasi *</label>
-      <select id="modal-duration" onchange="updateModalPrice()">
+      <select id="modal-duration" onchange="updateModalPrice(); updateModalQris()">
         <option value="">— Pilih Layanan Dulu —</option>
       </select>
     </div>
@@ -336,7 +373,41 @@
       <span>Total Harga</span>
       <strong id="modal-price">Pilih layanan &amp; durasi</strong>
     </div>
-    <button class="submit-order-btn" onclick="submitOrder()">✅ Konfirmasi via WhatsApp</button>
+    <!-- QRIS -->
+    <div id="modal-qris" style="display:none">
+      <div style="text-align:center;padding:8px 0 4px">
+        <div style="font-size:.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">💳 Pembayaran via QRIS</div>
+        <div style="background:white;border-radius:16px;padding:14px;display:inline-block;box-shadow:0 4px 20px rgba(0,0,0,.3)">
+          <img src="assets/qris.png" alt="QRIS CallPay" style="width:180px;height:180px;display:block">
+        </div>
+        <div style="margin-top:10px;font-size:.82rem;font-weight:700;color:var(--text)">CallPay</div>
+        <div style="font-size:.78rem;color:var(--text-muted);font-weight:600;margin-top:2px">Scan QR di atas untuk membayar</div>
+        <div id="modal-amount" style="font-size:1.1rem;font-weight:900;color:var(--pink);margin-top:8px"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;margin-top:14px;padding:12px 14px;background:rgba(61,214,140,.06);border:1px solid rgba(61,214,140,.2);border-radius:10px;cursor:pointer">
+        <input type="checkbox" id="modal-paid" onchange="toggleModalConfirm()" style="width:18px;height:18px;accent-color:var(--pink);cursor:pointer;flex-shrink:0">
+        <span style="font-size:.83rem;font-weight:700;color:var(--text)">Saya sudah melakukan pembayaran</span>
+      </label>
+    </div>
+    <!-- Ketentuan Layanan — scroll box + checkbox -->
+    <div style="margin-top:14px">
+      <div style="font-size:.73rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">📋 Ketentuan Layanan</div>
+      <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;max-height:130px;overflow-y:auto;font-size:.82rem;font-weight:600;color:var(--text-muted);line-height:1.75">
+        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">①</span><span>Dilarang membahas topik <strong style="color:var(--text)">sensitif, SARA, dan berbau seksual</strong> dalam bentuk apapun.</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">②</span><span>Dilarang melakukan <strong style="color:var(--text)">pembayaran di luar agensi</strong>. Semua transaksi wajib melalui CallPay.</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">③</span><span>Dilarang <strong style="color:var(--text)">meminta kontak pribadi</strong> talent (nomor HP, media sosial, dll).</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">④</span><span>Dilarang <strong style="color:var(--text)">melecehkan, mengancam, atau bersikap tidak sopan</strong> kepada talent.</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">⑤</span><span>Layanan <strong style="color:var(--text)">tidak dapat di-refund</strong> apabila sesi sudah dimulai.</span></div>
+        <div style="display:flex;gap:8px"><span style="color:var(--pink);flex-shrink:0">⑥</span><span>Pelanggaran ketentuan mengakibatkan <strong style="color:var(--text)">pemblokiran permanen</strong>.</span></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;margin-top:10px;cursor:pointer">
+        <input type="checkbox" id="modal-agree" onchange="toggleModalConfirm()" style="width:17px;height:17px;accent-color:var(--pink);cursor:pointer;flex-shrink:0">
+        <span style="font-size:.82rem;font-weight:700;color:var(--text)">Saya sudah membaca dan menyetujui peraturan di atas</span>
+      </label>
+    </div>
+    <button class="submit-order-btn" id="modal-confirm-btn" onclick="submitOrder()" disabled style="opacity:.4;cursor:not-allowed;margin-top:14px">
+      ✅ Konfirmasi via WhatsApp
+    </button>
   </div>
 </div>
 

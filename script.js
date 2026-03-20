@@ -39,7 +39,12 @@ function renderTalents() {
         <div class="talent-name">${t.name}</div>
         <div class="talent-meta">🎂 ${t.age} thn &nbsp;·&nbsp; 🇮🇩 Indonesia</div>
         <div class="talent-tags">${t.services.map(s=>`<span class="talent-tag">${s}</span>`).join('')}</div>
-        <button class="pesan-btn" onclick="openModal(${t.id})">💬 Pesan</button>
+        <div style="display:flex;gap:8px;margin-top:auto">
+          <button class="play-btn" id="play-${t.id}" onclick="playSample(${t.id},'${t.name}','${t.gender}')" title="Dengar suara sample">
+            ▶ Sample Suara
+          </button>
+          <button class="pesan-btn" style="flex:1" onclick="openModal(${t.id})">💬 Pesan</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -100,11 +105,11 @@ window.openModal = function(id) {
   document.getElementById('modal-duration').innerHTML = '<option value="">— Pilih Layanan Dulu —</option>';
   document.getElementById('modal-note').value        = '';
   document.getElementById('modal-price').textContent = 'Pilih layanan & durasi';
-  document.querySelector('.modal-backdrop').classList.add('open');
+  document.getElementById('talent-modal').classList.add('open');
 };
 
 window.closeModal = function() {
-  document.querySelector('.modal-backdrop').classList.remove('open');
+  document.getElementById('talent-modal').classList.remove('open');
 };
 
 window.updateDurations = function() {
@@ -308,10 +313,111 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (allBtn) allBtn.classList.add('fa');
 
   // Modal backdrop clicks
-  const bd = document.querySelector('.modal-backdrop');
+  const bd = document.getElementById('talent-modal');
   if (bd) bd.addEventListener('click', e => { if(e.target===bd) closeModal(); });
   const qm = document.getElementById('quick-modal');
   if (qm) qm.addEventListener('click', e => { if(e.target===qm) closeQuickOrder(); });
 
   initScrollAnimations();
 });
+
+// ============================================================
+//  QRIS — tampil setelah layanan & durasi dipilih
+// ============================================================
+window.updateModalQris = function() {
+  const svcRaw = document.getElementById('modal-service').value;
+  const dur    = parseInt(document.getElementById('modal-duration').value);
+  const svcLabel = SVC_KEY_TO_LABEL[svcRaw];
+  const price    = (svcLabel && dur) ? PRICES[svcLabel]?.[dur] : null;
+  const qrisDiv  = document.getElementById('modal-qris');
+  const amountEl = document.getElementById('modal-amount');
+  const confirmBtn = document.getElementById('modal-confirm-btn');
+
+  if (price) {
+    qrisDiv.style.display = 'block';
+    amountEl.textContent  = 'Rp ' + price.toLocaleString('id-ID');
+    // reset checkbox & button
+    document.getElementById('modal-paid').checked = false;
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '.4';
+    confirmBtn.style.cursor  = 'not-allowed';
+  } else {
+    qrisDiv.style.display = 'none';
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '.4';
+    confirmBtn.style.cursor  = 'not-allowed';
+  }
+};
+
+window.toggleModalConfirm = function() {
+  const paid    = document.getElementById('modal-paid')?.checked ?? true;
+  const agreed  = document.getElementById('modal-agree')?.checked ?? false;
+  const ok      = paid && agreed;
+  const confirmBtn = document.getElementById('modal-confirm-btn');
+  if (!confirmBtn) return;
+  confirmBtn.disabled      = !ok;
+  confirmBtn.style.opacity = ok ? '1' : '.4';
+  confirmBtn.style.cursor  = ok ? 'pointer' : 'not-allowed';
+};
+
+window.updateQOQris = function() {
+  const svcRaw   = document.getElementById('qo-service').value;
+  const dur      = parseInt(document.getElementById('qo-duration').value);
+  const svcLabel = SVC_KEY_TO_LABEL[svcRaw];
+  const price    = (svcLabel && dur) ? PRICES[svcLabel]?.[dur] : null;
+  const qrisDiv  = document.getElementById('qo-qris');
+  const amountEl = document.getElementById('qo-amount');
+  const confirmBtn = document.getElementById('qo-confirm-btn');
+
+  if (price) {
+    qrisDiv.style.display = 'block';
+    amountEl.textContent  = 'Rp ' + price.toLocaleString('id-ID');
+    document.getElementById('qo-paid').checked = false;
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '.4';
+    confirmBtn.style.cursor  = 'not-allowed';
+  } else {
+    qrisDiv.style.display = 'none';
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '.4';
+    confirmBtn.style.cursor  = 'not-allowed';
+  }
+};
+
+window.toggleQOConfirm = function() {
+  const paid    = document.getElementById('qo-paid')?.checked ?? true;
+  const agreed  = document.getElementById('qo-agree')?.checked ?? false;
+  const ok      = paid && agreed;
+  const confirmBtn = document.getElementById('qo-confirm-btn');
+  if (!confirmBtn) return;
+  confirmBtn.disabled      = !ok;
+  confirmBtn.style.opacity = ok ? '1' : '.4';
+  confirmBtn.style.cursor  = ok ? 'pointer' : 'not-allowed';
+};
+
+// Reset QRIS on modal close
+const _origCloseModal = window.closeModal;
+window.closeModal = function() {
+  _origCloseModal();
+  const qr = document.getElementById('modal-qris');
+  const cb = document.getElementById('modal-paid');
+  const btn = document.getElementById('modal-confirm-btn');
+  if(qr) qr.style.display='none';
+  if(cb) cb.checked=false;
+  const ag = document.getElementById('modal-agree');
+  if(ag) ag.checked=false;
+  if(btn){ btn.disabled=true; btn.style.opacity='.4'; btn.style.cursor='not-allowed'; }
+};
+
+const _origCloseQO = window.closeQuickOrder;
+window.closeQuickOrder = function() {
+  _origCloseQO();
+  const qr = document.getElementById('qo-qris');
+  const cb = document.getElementById('qo-paid');
+  const btn = document.getElementById('qo-confirm-btn');
+  if(qr) qr.style.display='none';
+  if(cb) cb.checked=false;
+  const agq = document.getElementById('qo-agree');
+  if(agq) agq.checked=false;
+  if(btn){ btn.disabled=true; btn.style.opacity='.4'; btn.style.cursor='not-allowed'; }
+};
