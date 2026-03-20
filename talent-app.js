@@ -141,17 +141,24 @@ function startOrderListener() {
   unsubOrders = onSnapshot(q, snap => {
     const all = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
 
-    // Incoming: quick orders waiting for bid (no talent yet OR has bids but not confirmed)
-    const incoming = all.filter(o =>
-      o.orderType === 'quick' &&
-      o.status === 'waiting_bid' &&
-      !o.confirmedTalent
-    );
+    // Incoming: quick orders waiting for bid, still within 3 min window, not confirmed
+    const BID_MINS = 5;
+    const incoming = all.filter(o => {
+      if (o.orderType !== 'quick') return false;
+      if (o.status !== 'waiting_bid') return false;
+      if (o.confirmedTalent) return false;
+      // Check timer not expired
+      const created = o.createdAt?.toDate ? o.createdAt.toDate().getTime() : new Date(o.date).getTime();
+      const timeLeft = (created + 5 * 60 * 1000) - Date.now();
+      return timeLeft > 0;
+    });
 
-    // My assigned orders
+    // My orders: confirmed by customer OR assigned by admin
     const myOrders = all.filter(o =>
       o.confirmedTalent === currentTalent.id ||
-      o.confirmedTalentName === currentTalent.name
+      o.confirmedTalentName === currentTalent.name ||
+      (o.talentId === currentTalent.id && o.status !== 'waiting_bid') ||
+      (o.talentName === currentTalent.name && o.status !== 'waiting_bid')
     );
 
     renderIncoming(incoming);
@@ -183,14 +190,14 @@ function renderIncoming(orders) {
         <div>
           <div class="order-id">#${(o.id||'').slice(-8)}</div>
           <div class="order-service">${o.service}</div>
-          <div class="order-meta">⏱ ${getDurLabel(o.duration)} &nbsp;·&nbsp; ${bidCount} talent bid ${genderPref ? '&nbsp;·&nbsp;' + genderPref : ''}</div>
+          <div class="order-meta">⏱ ${getDurLabel(o.duration)} &nbsp;·&nbsp; ${bidCount > 0 ? bidCount + ' talent bid' : 'Belum ada yang bid'} ${genderPref ? '&nbsp;·&nbsp;' + genderPref : ''}</div>
         </div>
         <div class="order-price">Rp ${(o.price||0).toLocaleString('id-ID')}</div>
       </div>
       ${o.customerNote ? `<div class="order-note">📝 "${o.customerNote}"</div>` : ''}
       <div class="timer-wrap" id="timer-wrap-${o.id}">
         <div class="timer-bar-track">
-          <div class="timer-bar-fill ${timeLeft < 60 ? 'urgent' : ''}" id="tbar-${o.id}" style="width:${getTimerPct(o.createdAt, 3)}%"></div>
+          <div class="timer-bar-fill ${timeLeft < 60 ? 'urgent' : ''}" id="tbar-${o.id}" style="width:${getTimerPct(o.createdAt, 5)}%"></div>
         </div>
         <div class="timer-text ${timeLeft < 60 ? 'urgent' : ''}" id="ttext-${o.id}">
           ${expired ? 'Waktu habis' : formatTime(timeLeft)}
@@ -209,7 +216,7 @@ function renderIncoming(orders) {
 }
 
 // ── TIMER ──────────────────────────────────────────────────────
-const BID_MINUTES = 3;
+const BID_MINUTES = 5;
 
 function getTimeLeft(createdAt, minutes) {
   if (!createdAt) return 0;
@@ -279,14 +286,14 @@ async function doBid(orderId, docId) {
     const existing = (data.bids || []).find(b => b.talentId === currentTalent.id);
     if (existing) { btn.textContent = '✅ Sudah Bid'; btn.classList.add('bidded'); return; }
 
-    // Add bid
+    // Add bid — semua talent boleh bid selama 5 menit
     await updateDoc(ref, {
       bids: arrayUnion({
         talentId  : currentTalent.id,
         talentName: currentTalent.name,
         gender    : currentTalent.gender,
         bidAt     : new Date().toISOString(),
-      })
+      }),
     });
 
     btn.textContent = '✅ Sudah Bid';

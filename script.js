@@ -164,7 +164,13 @@ window.submitOrder = async function() {
     `👤 Talent  : ${activeTalent.name}`,`💼 Layanan : ${svcLabel}`,
     `⏱ Durasi  : ${durLabel}`,`💰 Harga   : Rp ${price.toLocaleString('id-ID')}`,
     note?`Catatan: ${note}`:null,``,
-    `ID Order: ${(saved.id||'').slice(-8)}`,`Terima kasih! 🙏`,
+    `━━━━━━━━━━━━━━━━━━━`,
+    `🔑 KODE ORDER KAMU`,
+    `━━━━━━━━━━━━━━━━━━━`,
+    `${saved.id||'Gagal generate kode'}`,
+    ``,
+    `Simpan kode ini untuk cek status orderan kamu!`,
+    `Terima kasih! 🙏`,
   ].filter(l=>l!==null).join('\n');
 
   window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(lines)}`, '_blank');
@@ -242,7 +248,13 @@ window.submitQuickOrder = async function() {
     `💰 Harga   : Rp ${price.toLocaleString('id-ID')}`,
     gender?`👤 Preferensi: ${gender==='female'?'Wanita 🌸':'Pria 💙'}`:null,
     note?`Catatan: ${note}`:null,``,
-    `ID Order: ${(saved.id||'').slice(-8)}`,`Terima kasih! 🙏`,
+    `━━━━━━━━━━━━━━━━━━━`,
+    `🔑 KODE ORDER KAMU`,
+    `━━━━━━━━━━━━━━━━━━━`,
+    `${saved.id||'Gagal generate kode'}`,
+    ``,
+    `Simpan kode ini untuk cek status orderan kamu!`,
+    `Terima kasih! 🙏`,
   ].filter(l=>l!==null).join('\n');
 
   window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(lines)}`, '_blank');

@@ -149,8 +149,13 @@ const DB = {
       const o = orders.find(x => x.id === orderId);
       if (o?._docId) {
         await updateDoc(doc(_db, COL_ORDERS, o._docId), {
-          talentId, talentName,
-          assignedAt: new Date().toISOString()
+          talentId,
+          talentName,
+          confirmedTalent    : talentId,
+          confirmedTalentName: talentName,
+          status             : 'baru',
+          assignedAt         : new Date().toISOString(),
+          assignedByAdmin    : true,
         });
       }
     } catch(e) { console.error('assignTalent error:', e); }

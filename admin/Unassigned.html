@@ -61,6 +61,8 @@ document.getElementById('assign-confirm').onclick=async()=>{
   if(!pendingAssign)return;
   const{orderId,talentId,talentName}=pendingAssign;
   await DB.assignTalent(orderId,talentId,talentName);
+  // Update status ke baru setelah di-assign
+  await DB.updateOrderStatus(orderId,'baru');
   document.getElementById('assign-modal').classList.remove('open');
   pendingAssign=null;
   toast(`✅ Order di-assign ke ${talentName}!`);
@@ -81,7 +83,12 @@ window.deleteOrder=async(id)=>{
 };
 
 function render(orders){
-  const unassigned=orders.filter(o=>!o.talentId&&!o.talentName);
+  // Show: waiting_bid orders without confirmed talent (admin needs to handle these)
+  const unassigned=orders.filter(o=>
+    (o.status==='waiting_bid' || (!o.talentId && !o.talentName)) &&
+    !o.confirmedTalent &&
+    !o.confirmedTalentName
+  );
   document.getElementById('ua-summary').innerHTML=`
     <span class="badge badge-baru" style="font-size:.8rem;padding:5px 14px">Belum di-assign: ${unassigned.length}</span>
     <span class="badge badge-selesai" style="font-size:.8rem;padding:5px 14px">Selesai: ${unassigned.filter(o=>o.status==='selesai').length}</span>`;
