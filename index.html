@@ -264,7 +264,7 @@
     </div>
     <div class="form-field">
       <label>Layanan *</label>
-      <select id="qo-service" onchange="updateQODurations(); updateQOPrice(); updateQOQris()">
+      <select id="qo-service" onchange="updateQODurations(); updateQOPrice()">
         <option value="">— Pilih Layanan —</option>
         <option value="temen-call">📞 Temen Call</option>
         <option value="sleepcall">🌙 Sleepcall</option>
@@ -274,7 +274,7 @@
     </div>
     <div class="form-field">
       <label>Durasi *</label>
-      <select id="qo-duration" onchange="updateQOPrice(); updateQOQris()">
+      <select id="qo-duration" onchange="updateQOPrice()">
         <option value="">— Pilih Layanan Dulu —</option>
       </select>
     </div>
@@ -287,6 +287,10 @@
       </select>
     </div>
     <div class="form-field">
+      <label>No. WhatsApp *</label>
+      <input type="text" id="qo-wa" placeholder="08xxxxxxxxxx">
+    </div>
+    <div class="form-field">
       <label>Catatan (opsional)</label>
       <textarea id="qo-note" rows="2" placeholder="Ceritakan apa yang kamu inginkan..."></textarea>
     </div>
@@ -294,23 +298,7 @@
       <span>Total Harga</span>
       <strong id="qo-price">Pilih layanan &amp; durasi</strong>
     </div>
-    <!-- QRIS -->
-    <div id="qo-qris" style="display:none">
-      <div style="text-align:center;padding:8px 0 4px">
-        <div style="font-size:.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">💳 Pembayaran via QRIS</div>
-        <div style="background:white;border-radius:16px;padding:14px;display:inline-block;box-shadow:0 4px 20px rgba(0,0,0,.3)">
-          <img src="assets/qris.png" alt="QRIS CallPay" style="width:180px;height:180px;display:block">
-        </div>
-        <div style="margin-top:10px;font-size:.82rem;font-weight:700;color:var(--text)">CallPay</div>
-        <div style="font-size:.78rem;color:var(--text-muted);font-weight:600;margin-top:2px">Scan QR di atas untuk membayar</div>
-        <div id="qo-amount" style="font-size:1.1rem;font-weight:900;color:var(--pink);margin-top:8px"></div>
-      </div>
-      <label style="display:flex;align-items:center;gap:10px;margin-top:14px;padding:12px 14px;background:rgba(61,214,140,.06);border:1px solid rgba(61,214,140,.2);border-radius:10px;cursor:pointer">
-        <input type="checkbox" id="qo-paid" onchange="toggleQOConfirm()" style="width:18px;height:18px;accent-color:var(--pink);cursor:pointer;flex-shrink:0">
-        <span style="font-size:.83rem;font-weight:700;color:var(--text)">Saya sudah melakukan pembayaran</span>
-      </label>
-    </div>
-    <!-- Ketentuan Layanan — scroll box + checkbox -->
+    <!-- Ketentuan -->
     <div style="margin-top:14px">
       <div style="font-size:.73rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">📋 Ketentuan Layanan</div>
       <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;max-height:130px;overflow-y:auto;font-size:.82rem;font-weight:600;color:var(--text-muted);line-height:1.75">
@@ -323,11 +311,11 @@
       </div>
       <label style="display:flex;align-items:center;gap:10px;margin-top:10px;cursor:pointer">
         <input type="checkbox" id="qo-agree" onchange="toggleQOConfirm()" style="width:17px;height:17px;accent-color:var(--pink);cursor:pointer;flex-shrink:0">
-        <span style="font-size:.82rem;font-weight:700;color:var(--text)">Saya sudah membaca dan menyetujui peraturan di atas</span>
+        <span style="font-size:.82rem;font-weight:700;color:var(--text)">Saya sudah membaca dan menyetujui peraturan</span>
       </label>
     </div>
     <button class="submit-order-btn" id="qo-confirm-btn" onclick="submitQuickOrder()" disabled style="opacity:.4;cursor:not-allowed;margin-top:14px">
-      ✅ Konfirmasi via WhatsApp
+      Konfirmasi Pesanan →
     </button>
   </div>
 </div>
@@ -341,7 +329,6 @@
       <h3>Pesan Layanan</h3>
       <button class="modal-close-btn" onclick="closeModal()">✕</button>
     </div>
-    <!-- Info talent yang dipilih -->
     <div class="modal-talent-row">
       <img id="modal-img" src="" alt="Talent" style="width:64px;height:64px;border-radius:14px;object-fit:cover;object-position:top;flex-shrink:0">
       <div>
@@ -352,7 +339,7 @@
     </div>
     <div class="form-field">
       <label>Layanan *</label>
-      <select id="modal-service" onchange="updateDurations(); updateModalPrice(); updateModalQris()">
+      <select id="modal-service" onchange="updateDurations(); updateModalPrice()">
         <option value="">— Pilih Layanan —</option>
         <option value="temen-call">📞 Temen Call</option>
         <option value="sleepcall">🌙 Sleepcall</option>
@@ -362,9 +349,13 @@
     </div>
     <div class="form-field">
       <label>Durasi *</label>
-      <select id="modal-duration" onchange="updateModalPrice(); updateModalQris()">
+      <select id="modal-duration" onchange="updateModalPrice()">
         <option value="">— Pilih Layanan Dulu —</option>
       </select>
+    </div>
+    <div class="form-field">
+      <label>No. WhatsApp *</label>
+      <input type="text" id="modal-wa" placeholder="08xxxxxxxxxx">
     </div>
     <div class="form-field">
       <label>Catatan (opsional)</label>
@@ -374,23 +365,7 @@
       <span>Total Harga</span>
       <strong id="modal-price">Pilih layanan &amp; durasi</strong>
     </div>
-    <!-- QRIS -->
-    <div id="modal-qris" style="display:none">
-      <div style="text-align:center;padding:8px 0 4px">
-        <div style="font-size:.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">💳 Pembayaran via QRIS</div>
-        <div style="background:white;border-radius:16px;padding:14px;display:inline-block;box-shadow:0 4px 20px rgba(0,0,0,.3)">
-          <img src="assets/qris.png" alt="QRIS CallPay" style="width:180px;height:180px;display:block">
-        </div>
-        <div style="margin-top:10px;font-size:.82rem;font-weight:700;color:var(--text)">CallPay</div>
-        <div style="font-size:.78rem;color:var(--text-muted);font-weight:600;margin-top:2px">Scan QR di atas untuk membayar</div>
-        <div id="modal-amount" style="font-size:1.1rem;font-weight:900;color:var(--pink);margin-top:8px"></div>
-      </div>
-      <label style="display:flex;align-items:center;gap:10px;margin-top:14px;padding:12px 14px;background:rgba(61,214,140,.06);border:1px solid rgba(61,214,140,.2);border-radius:10px;cursor:pointer">
-        <input type="checkbox" id="modal-paid" onchange="toggleModalConfirm()" style="width:18px;height:18px;accent-color:var(--pink);cursor:pointer;flex-shrink:0">
-        <span style="font-size:.83rem;font-weight:700;color:var(--text)">Saya sudah melakukan pembayaran</span>
-      </label>
-    </div>
-    <!-- Ketentuan Layanan — scroll box + checkbox -->
+    <!-- Ketentuan -->
     <div style="margin-top:14px">
       <div style="font-size:.73rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">📋 Ketentuan Layanan</div>
       <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;max-height:130px;overflow-y:auto;font-size:.82rem;font-weight:600;color:var(--text-muted);line-height:1.75">
@@ -403,11 +378,11 @@
       </div>
       <label style="display:flex;align-items:center;gap:10px;margin-top:10px;cursor:pointer">
         <input type="checkbox" id="modal-agree" onchange="toggleModalConfirm()" style="width:17px;height:17px;accent-color:var(--pink);cursor:pointer;flex-shrink:0">
-        <span style="font-size:.82rem;font-weight:700;color:var(--text)">Saya sudah membaca dan menyetujui peraturan di atas</span>
+        <span style="font-size:.82rem;font-weight:700;color:var(--text)">Saya sudah membaca dan menyetujui peraturan</span>
       </label>
     </div>
     <button class="submit-order-btn" id="modal-confirm-btn" onclick="submitOrder()" disabled style="opacity:.4;cursor:not-allowed;margin-top:14px">
-      ✅ Konfirmasi via WhatsApp
+      Konfirmasi Pesanan →
     </button>
   </div>
 </div>

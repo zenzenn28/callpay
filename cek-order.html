@@ -298,7 +298,7 @@ function renderOrderResult(order) {
           </div>`).join('')}
       </div>
       <button class="confirm-btn" id="confirm-talent-btn" onclick="confirmTalent()" disabled>
-        Pilih Talent ini ✓
+        ✅ Konfirmasi via WhatsApp
       </button>
     ` : `
       <div class="msg-box" style="padding:24px">
@@ -349,6 +349,7 @@ window.confirmTalent = async function() {
   btn.textContent = 'Memproses...';
 
   try {
+    // Update Firestore
     await updateDoc(doc(db, 'orders', currentOrder._docId), {
       confirmedTalent    : selectedBid.talentId,
       confirmedTalentName: selectedBid.talentName,
@@ -356,7 +357,36 @@ window.confirmTalent = async function() {
       talentName         : selectedBid.talentName,
       status             : 'baru',
     });
-    // renderSuccess will be called by onSnapshot
+
+    // Ambil settings untuk nomor WA admin
+    const { getDoc: gd } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
+    const settingsSnap = await getDoc(doc(db, 'settings', 'config'));
+    const waNumber = settingsSnap.exists() ? (settingsSnap.data().waNumber || '62895400709371') : '62895400709371';
+    const agencyName = settingsSnap.exists() ? (settingsSnap.data().agencyName || 'CallPay Agency') : 'CallPay Agency';
+
+    // Buka WA konfirmasi
+    const wa = currentOrder.customerWa || '';
+    const msg = [
+      `Halo ${agencyName}! Saya ingin konfirmasi pesanan 💕`,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━`,
+      `📋 DETAIL ORDER`,
+      `━━━━━━━━━━━━━━━━━━━`,
+      `👤 Talent  : ${selectedBid.talentName}`,
+      `💼 Layanan : ${currentOrder.service}`,
+      `⏱ Durasi  : ${DUR_LABEL[currentOrder.duration]||currentOrder.duration+' menit'}`,
+      `💰 Harga   : Rp ${(currentOrder.price||0).toLocaleString('id-ID')}`,
+      ``,
+      `🔑 Kode Order: ${currentOrder.id}`,
+      `📱 No. WA    : ${wa}`,
+      ``,
+      `Mohon kirimkan QRIS pembayaran ke nomor WA saya.`,
+      `Terima kasih! 🙏`,
+    ].join('\n');
+
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, '_blank');
+    // renderSuccess will be triggered by onSnapshot
+
   } catch(e) {
     console.error(e);
     btn.disabled    = false;
@@ -408,11 +438,17 @@ function toast(msg) {
   setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-// Allow Enter key
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('order-code').addEventListener('keydown', e => {
     if (e.key === 'Enter') window.cekOrder();
   });
+  // Auto-load dari URL param ?code=ORD-xxx
+  const params = new URLSearchParams(window.location.search);
+  const code   = params.get('code');
+  if (code) {
+    document.getElementById('order-code').value = code;
+    window.cekOrder();
+  }
 });
 </script>
 </body>
