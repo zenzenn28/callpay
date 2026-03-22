@@ -442,48 +442,36 @@ async function initNotifications() {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
 
   try {
-    // Register service worker
-    const swReg = await navigator.serviceWorker.register('/callpay/firebase-messaging-sw.js');
-
     // Minta izin notifikasi
     const permission = await Notification.requestPermission();
     notifPermission = permission === 'granted';
-
     if (!notifPermission) { showNotifBanner(false); return; }
 
-    // Import FCM
-    const { getMessaging, getToken, onMessage } =
-      await import('https://www.gstatic.com/firebasejs/12.10.0/firebase-messaging.js');
+    // Register service worker
+    const swReg = await navigator.serviceWorker.register(
+      '/callpay/firebase-messaging-sw.js',
+      { scope: '/callpay/' }
+    );
+    await navigator.serviceWorker.ready;
 
-    const messaging = getMessaging(app);
-
-    // Get FCM token
-    const token = await getToken(messaging, {
-      vapidKey: VAPID_KEY,
-      serviceWorkerRegistration: swReg,
-    });
-
-    if (token) {
-      // Simpan token ke Firestore
-      await updateDoc(doc(db, 'talents', currentTalent.id), {
-        fcmToken: token,
-        notifEnabled: true,
+    // Kirim info talent ke service worker
+    const sw = swReg.active || swReg.waiting || swReg.installing;
+    if (sw) {
+      sw.postMessage({
+        type      : 'INIT_LISTENER',
+        talentName: currentTalent.name,
       });
-      showNotifBanner(true);
-
-      // Notif saat app aktif di foreground
-      onMessage(messaging, payload => {
-        const title = payload.notification?.title || '🔔 Order Masuk!';
-        const body  = payload.notification?.body  || 'Ada orderan baru!';
-        showInAppNotif(title, body, payload.data?.isSpecial === 'true');
+      // Kirim order IDs yang sudah diketahui supaya tidak double notif
+      lastOrderIds.forEach(id => {
+        sw.postMessage({ type: 'ADD_KNOWN_ORDER', orderId: id });
       });
     }
+
+    showNotifBanner(true);
+    console.log('Push notifikasi aktif untuk', currentTalent.name);
   } catch(e) {
-    console.error('FCM init error:', e);
-    // Fallback ke Web Notifications biasa
-    const permission = await Notification.requestPermission();
-    notifPermission = permission === 'granted';
-    showNotifBanner(notifPermission);
+    console.error('Notif init error:', e);
+    showNotifBanner(false);
   }
 }
 
