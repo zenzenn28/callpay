@@ -457,23 +457,43 @@ async function initNotifications() {
       '/callpay/firebase-messaging-sw.js',
       { scope: '/callpay/' }
     );
-    await navigator.serviceWorker.ready;
 
-    // Kirim info talent ke service worker
-    const sw = swReg.active || swReg.waiting || swReg.installing;
+    // Tunggu SW aktif
+    await new Promise(resolve => {
+      if (swReg.active) { resolve(); return; }
+      const sw = swReg.installing || swReg.waiting;
+      if (sw) {
+        sw.addEventListener('statechange', () => {
+          if (sw.state === 'activated') resolve();
+        });
+      } else {
+        navigator.serviceWorker.ready.then(resolve);
+      }
+    });
+
+    // Kirim info talent + known order IDs ke SW
+    const sw = swReg.active;
     if (sw) {
       sw.postMessage({
         type      : 'INIT_LISTENER',
         talentName: currentTalent.name,
-      });
-      // Kirim order IDs yang sudah diketahui supaya tidak double notif
-      lastOrderIds.forEach(id => {
-        sw.postMessage({ type: 'ADD_KNOWN_ORDER', orderId: id });
+        knownIds  : [...lastOrderIds],
       });
     }
 
+    // Re-send setiap kali SW berubah (update)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      const newSw = navigator.serviceWorker.controller;
+      if (newSw) {
+        newSw.postMessage({
+          type      : 'INIT_LISTENER',
+          talentName: currentTalent.name,
+          knownIds  : [...lastOrderIds],
+        });
+      }
+    });
+
     showNotifBanner(true);
-    console.log('Push notifikasi aktif untuk', currentTalent.name);
   } catch(e) {
     console.error('Notif init error:', e);
     showNotifBanner(false);
