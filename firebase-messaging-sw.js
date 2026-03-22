@@ -5,7 +5,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
 firebase.initializeApp({
-  apiKey           : "AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU",
+  apiKey           : "AIzaSyDpaaDSHLu8Oy27WKXBjBcDsn9sRpVnRw0",
   authDomain       : "callpay-28a28.firebaseapp.com",
   projectId        : "callpay-28a28",
   storageBucket    : "callpay-28a28.firebasestorage.app",

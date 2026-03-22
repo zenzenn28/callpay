@@ -12,7 +12,7 @@ import { getFirestore,
          arrayUnion }            from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const FIREBASE_CONFIG = {
-  apiKey           : "AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU",
+  apiKey           : "AIzaSyDpaaDSHLu8Oy27WKXBjBcDsn9sRpVnRw0",
   authDomain       : "callpay-28a28.firebaseapp.com",
   projectId        : "callpay-28a28",
   storageBucket    : "callpay-28a28.firebasestorage.app",
