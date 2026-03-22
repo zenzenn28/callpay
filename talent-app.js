@@ -214,6 +214,7 @@ function renderIncoming(orders) {
           <div class="order-id">#${(o.id||'').slice(-8)}</div>
           <div class="order-service">${o.service}</div>
           <div class="order-meta">⏱ ${getDurLabel(o.duration)} &nbsp;·&nbsp; ${bidCount > 0 ? bidCount + ' talent bid' : 'Belum ada yang bid'}</div>
+          <div class="order-meta" style="margin-top:3px">🕐 Masuk: ${formatDate(o.date)}</div>
         </div>
         <div class="order-price">Rp ${(o.price||0).toLocaleString('id-ID')}</div>
       </div>
@@ -376,7 +377,11 @@ function getDurLabel(d) {
 }
 function formatDate(iso) {
   if (!iso) return '-';
-  return new Date(iso).toLocaleDateString('id-ID', {day:'2-digit',month:'short',year:'numeric'});
+  const d    = new Date(iso);
+  const date = d.toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'});
+  const h    = String(d.getHours()).padStart(2,'0');
+  const m    = String(d.getMinutes()).padStart(2,'0');
+  return `${date}, ${h}.${m}`;
 }
 
 function toast(msg) {

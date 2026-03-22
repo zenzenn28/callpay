@@ -226,7 +226,11 @@ const DB = {
   },
   formatDate(iso) {
     if (!iso) return '-';
-    return new Date(iso).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+    const d    = new Date(iso);
+    const date = d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+    const h    = String(d.getHours()).padStart(2,'0');
+    const m    = String(d.getMinutes()).padStart(2,'0');
+    return `${date}, ${h}.${m}`;
   },
   timeRemaining(order) {
     if (order.status === 'batal')       return '—';
