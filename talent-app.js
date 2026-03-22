@@ -446,65 +446,43 @@ let notifPermission = false;
 async function initNotifications() {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
 
-  try {
-    // Minta izin notifikasi
-    const permission = await Notification.requestPermission();
-    notifPermission = permission === 'granted';
-    if (!notifPermission) { showNotifBanner(false); return; }
+  // Minta izin notifikasi
+  const permission = await Notification.requestPermission();
+  notifPermission  = permission === 'granted';
+  if (!notifPermission) { showNotifBanner(false); return; }
 
-    // Register service worker — harus sesuai dengan lokasi file
+  try {
+    // Register service worker
     const swReg = await navigator.serviceWorker.register(
       '/callpay/firebase-messaging-sw.js'
     );
+    await navigator.serviceWorker.ready;
 
-    // Tunggu SW aktif
-    await new Promise(resolve => {
-      if (swReg.active) { resolve(); return; }
-      const sw = swReg.installing || swReg.waiting;
-      if (sw) {
-        sw.addEventListener('statechange', () => {
-          if (sw.state === 'activated') resolve();
-        });
-      } else {
-        navigator.serviceWorker.ready.then(resolve);
-      }
+    // Get FCM token
+    const { getMessaging, getToken } =
+      await import('https://www.gstatic.com/firebasejs/12.10.0/firebase-messaging.js');
+
+    const messaging = getMessaging(app);
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: swReg,
     });
 
-    // Kirim info talent + known order IDs ke SW
-    const sw = swReg.active;
-    if (sw) {
-      sw.postMessage({
-        type      : 'INIT_LISTENER',
-        talentName: currentTalent.name,
-        knownIds  : [...lastOrderIds],
+    if (token) {
+      // Simpan FCM token ke Firestore supaya server bisa kirim notif
+      await updateDoc(doc(db, 'talents', currentTalent.id), {
+        fcmToken    : token,
+        notifEnabled: true,
       });
-    }
-
-    // Re-send setiap kali SW berubah (update)
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      const newSw = navigator.serviceWorker.controller;
-      if (newSw) {
-        newSw.postMessage({
-          type      : 'INIT_LISTENER',
-          talentName: currentTalent.name,
-          knownIds  : [...lastOrderIds],
-        });
-      }
-    });
-
-    showNotifBanner(true);
-    console.log('✅ Service Worker registered & notif aktif untuk', currentTalent.name);
-  } catch(e) {
-    console.error('❌ Notif init error:', e.message);
-    // Fallback — coba register tanpa menunggu aktivasi
-    try {
-      const swReg2 = await navigator.serviceWorker.register('/callpay/firebase-messaging-sw.js');
-      console.log('SW registered (fallback):', swReg2.scope);
-      showNotifBanner(notifPermission);
-    } catch(e2) {
-      console.error('❌ SW register gagal total:', e2.message);
+      console.log('✅ FCM token saved');
+      showNotifBanner(true);
+    } else {
+      console.warn('⚠️ No FCM token');
       showNotifBanner(false);
     }
+  } catch(e) {
+    console.error('❌ FCM error:', e.message);
+    showNotifBanner(false);
   }
 }
 
