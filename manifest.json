@@ -1,0 +1,22 @@
+{
+  "name": "CallPay Talent Portal",
+  "short_name": "CallPay",
+  "description": "Portal talent CallPay Agency",
+  "start_url": "/callpay/talent.html",
+  "display": "standalone",
+  "background_color": "#0A0A12",
+  "theme_color": "#E8628A",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

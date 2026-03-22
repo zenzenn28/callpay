@@ -18,7 +18,7 @@ const FIREBASE_CONFIG = {
 import { initializeApp }                          from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 import { getFirestore, collection, doc,
          addDoc, getDocs, getDoc, setDoc,
-         updateDoc, deleteDoc, query,
+         updateDoc, deleteDoc, query, where,
          orderBy, onSnapshot, Timestamp,
          serverTimestamp }                        from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
@@ -40,8 +40,8 @@ const SESSION_KEY = 'cp_admin';
 const DB = {
 
   // ── SESSION ───────────────────────────────────────────────
-  isLoggedIn() { return sessionStorage.getItem(SESSION_KEY) === '1'; },
-  setLogin(v)  { v ? sessionStorage.setItem(SESSION_KEY,'1') : sessionStorage.removeItem(SESSION_KEY); },
+  isLoggedIn() { return localStorage.getItem(SESSION_KEY) === '1'; },
+  setLogin(v)  { v ? localStorage.setItem(SESSION_KEY,'1') : localStorage.removeItem(SESSION_KEY); },
 
   // ── DEFAULT SETTINGS ──────────────────────────────────────
   defaultSettings() {
@@ -135,11 +135,31 @@ const DB = {
     } catch(e) { console.error('deleteAllOrders error:', e); }
   },
 
+  // Update langsung by Firestore document ID — paling reliable
+  async updateByDocId(docId, status) {
+    const updateData = { status, manualStatus: true };
+    if (status === 'proses') updateData.prosesAt = new Date().toISOString();
+    await updateDoc(doc(_db, COL_ORDERS, docId), updateData);
+  },
+
   async updateOrderStatus(id, status) {
     try {
-      const orders = await this.getOrders();
-      const o = orders.find(x => x.id === id);
-      if (o?._docId) await updateDoc(doc(_db, COL_ORDERS, o._docId), { status });
+      const snap = await getDocs(query(
+        collection(_db, COL_ORDERS),
+        where('id','==',id)
+      ));
+      const updateData = { status, manualStatus: true };
+      // Simpan timestamp ketika masuk ke proses
+      if (status === 'proses') updateData.prosesAt = new Date().toISOString();
+
+      if (!snap.empty) {
+        await updateDoc(doc(_db, COL_ORDERS, snap.docs[0].id), updateData);
+      } else {
+        // Fallback: cari lewat getOrders
+        const orders = await this.getOrders();
+        const o = orders.find(x => x.id === id);
+        if (o?._docId) await updateDoc(doc(_db, COL_ORDERS, o._docId), updateData);
+      }
     } catch(e) { console.error('updateOrderStatus error:', e); }
   },
 
@@ -209,21 +229,24 @@ const DB = {
     return new Date(iso).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
   },
   timeRemaining(order) {
-    if (order.status === 'batal') return '—';
-    if (!order.talentId && !order.talentName) return 'Belum di-assign';
-    const now        = Date.now();
-    const created    = new Date(order.date).getTime();
-    const elapsedMin = (now - created) / 60000;
-    const durMin     = Number(order.duration) || 60;
-    if (elapsedMin < 5) {
-      const secLeft = Math.ceil((5 - elapsedMin) * 60);
-      return `Mulai dalam ${secLeft}d`;
+    if (order.status === 'batal')       return '—';
+    if (order.status === 'waiting_bid') return 'Menunggu bid';
+    if (order.status === 'selesai')     return 'Selesai ✓';
+    if (order.status === 'baru')        return 'Menunggu mulai';
+    // Hanya tampil timer kalau status proses
+    if (order.status === 'proses') {
+      if (!order.prosesAt) return 'Sedang berjalan';
+      const now     = Date.now();
+      const prosesMs= new Date(order.prosesAt).getTime();
+      const durMs   = (Number(order.duration) || 60) * 60 * 1000;
+      const sisaMs  = durMs - (now - prosesMs);
+      if (sisaMs <= 0) return 'Selesai ✓';
+      const sisaMin = Math.ceil(sisaMs / 60000);
+      const sisaSec = Math.ceil(sisaMs / 1000);
+      if (sisaMin <= 1) return `${sisaSec} detik lagi`;
+      return `${sisaMin} mnt lagi`;
     }
-    if (elapsedMin < 5 + durMin) {
-      const minLeft = Math.ceil((5 + durMin) - elapsedMin);
-      return `${minLeft} mnt lagi`;
-    }
-    return 'Selesai';
+    return '—';
   },
 };
 

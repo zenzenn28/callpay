@@ -165,7 +165,7 @@
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
 import { getFirestore,
          collection, query,
-         where, getDocs,
+         where, getDocs, getDoc,
          doc, updateDoc,
          onSnapshot, orderBy } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
@@ -236,7 +236,96 @@ window.cekOrder = async function() {
   }
 };
 
+
+function renderTalentOrderConfirm(order) {
+  const res = document.getElementById('result');
+  res.innerHTML = `
+    <div class="order-info">
+      <div class="order-info-label">📋 Detail Order</div>
+      <div class="order-info-row">
+        <span class="order-info-key">Kode</span>
+        <span class="order-info-val" style="font-family:monospace;color:var(--pink)">${order.id}</span>
+      </div>
+      <div class="order-info-row">
+        <span class="order-info-key">Layanan</span>
+        <span class="order-info-val">${order.service}</span>
+      </div>
+      <div class="order-info-row">
+        <span class="order-info-key">Durasi</span>
+        <span class="order-info-val">${DUR_LABEL[order.duration]||order.duration+' menit'}</span>
+      </div>
+      <div class="order-info-row">
+        <span class="order-info-key">Harga</span>
+        <span class="order-info-val" style="color:var(--pink)">Rp ${(order.price||0).toLocaleString('id-ID')}</span>
+      </div>
+    </div>
+
+    <div class="bids-title">👤 Talent Pilihan Kamu</div>
+
+    <div class="bid-card selected" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:44px;height:44px;border-radius:50%;background:rgba(249,168,201,.1);border:2px solid var(--border-pk);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;color:var(--pink);flex-shrink:0">
+          ${order.talentName.charAt(0)}
+        </div>
+        <div style="flex:1">
+          <div class="bid-card-name">${order.talentName}</div>
+          <div class="bid-card-meta">Talent pilihan kamu ✓</div>
+        </div>
+        <div class="bid-check" style="background:var(--pink-mid);border-color:var(--pink-mid)">✓</div>
+      </div>
+    </div>
+
+    <button class="confirm-btn" onclick="confirmTalentOrder('${order._docId}','${order.talentId}','${order.talentName}',${JSON.stringify(order).replace(/'/g, "\'")})">
+      ✅ Konfirmasi via WhatsApp
+    </button>
+  `;
+}
+
+window.confirmTalentOrder = async function(docId, talentId, talentName, orderData) {
+  try {
+    await updateDoc(doc(db, 'orders', docId), {
+      confirmedTalent    : talentId,
+      confirmedTalentName: talentName,
+      status             : 'baru',
+    });
+  } catch(e) { console.error(e); }
+
+  // Get settings for WA number
+  try {
+    const settingsSnap = await getDoc(doc(db, 'settings', 'config'));
+    const waNumber   = settingsSnap.exists() ? (settingsSnap.data().waNumber || '62895400709371') : '62895400709371';
+    const agencyName = settingsSnap.exists() ? (settingsSnap.data().agencyName || 'CallPay Agency') : 'CallPay Agency';
+
+    const order = typeof orderData === 'string' ? JSON.parse(orderData) : orderData;
+    const msg = [
+      `Halo ${agencyName}! Saya ingin konfirmasi pesanan 💕`,
+      ``,
+      `━━━━━━━━━━━━━━━━━━━`,
+      `📋 DETAIL ORDER`,
+      `━━━━━━━━━━━━━━━━━━━`,
+      `👤 Talent  : ${talentName}`,
+      `💼 Layanan : ${order.service}`,
+      `⏱ Durasi  : ${DUR_LABEL[order.duration]||order.duration+' menit'}`,
+      `💰 Harga   : Rp ${(order.price||0).toLocaleString('id-ID')}`,
+      ``,
+      `🔑 Kode Order: ${order.id}`,
+      order.customerWa ? `📱 No. WA    : ${order.customerWa}` : null,
+      ``,
+      `Mohon kirimkan QRIS pembayaran ke nomor WA saya.`,
+      `Terima kasih! 🙏`,
+    ].filter(l => l !== null).join('\n');
+
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, '_blank');
+  } catch(e) { console.error(e); }
+};
+
 function renderOrderResult(order) {
+  // Talent order — sudah ada talent yang dipilih customer langsung
+  if (order.orderType === 'talent' && order.talentName) {
+    renderTalentOrderConfirm(order);
+    return;
+  }
+
   const bids    = order.bids || [];
   const created = order.createdAt?.toDate ? order.createdAt.toDate().getTime() : new Date(order.date).getTime();
   const deadline= created + BID_MINUTES * 60 * 1000;
@@ -359,10 +448,15 @@ window.confirmTalent = async function() {
     });
 
     // Ambil settings untuk nomor WA admin
-    const { getDoc: gd } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
-    const settingsSnap = await getDoc(doc(db, 'settings', 'config'));
-    const waNumber = settingsSnap.exists() ? (settingsSnap.data().waNumber || '62895400709371') : '62895400709371';
-    const agencyName = settingsSnap.exists() ? (settingsSnap.data().agencyName || 'CallPay Agency') : 'CallPay Agency';
+    let waNumber = '62895400709371';
+    let agencyName = 'CallPay Agency';
+    try {
+      const settingsSnap = await getDoc(doc(db, 'settings', 'config'));
+      if (settingsSnap.exists()) {
+        waNumber   = settingsSnap.data().waNumber   || waNumber;
+        agencyName = settingsSnap.data().agencyName || agencyName;
+      }
+    } catch(e) { console.warn('Settings fetch failed, using defaults'); }
 
     // Buka WA konfirmasi
     const wa = currentOrder.customerWa || '';

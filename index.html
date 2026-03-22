@@ -252,16 +252,15 @@
 
 
 
-<!-- ══ QUICK ORDER MODAL (tanpa pilih talent) ══════════════ -->
+<!-- ══ QUICK ORDER MODAL ══════════════════════════════════ -->
 <div class="modal-backdrop" id="quick-modal">
-  <div class="modal-box">
+  <div class="modal-box" style="max-width:520px">
     <div class="modal-head">
       <h3>Pesan Layanan</h3>
       <button class="modal-close-btn" onclick="closeQuickOrder()">✕</button>
     </div>
-    <div style="background:rgba(249,168,201,.07);border:1px solid var(--border-pink);border-radius:12px;padding:12px 14px;margin-bottom:18px;font-size:.83rem;font-weight:600;color:var(--pink)">
-      💡 Admin kami akan mencarikan talent terbaik untukmu!
-    </div>
+
+    <!-- Layanan -->
     <div class="form-field">
       <label>Layanan *</label>
       <select id="qo-service" onchange="updateQODurations(); updateQOPrice()">
@@ -272,48 +271,153 @@
         <option value="pacar-virtual">💕 Pacar Virtual</option>
       </select>
     </div>
+
+    <!-- Durasi -->
     <div class="form-field">
       <label>Durasi *</label>
       <select id="qo-duration" onchange="updateQOPrice()">
         <option value="">— Pilih Layanan Dulu —</option>
       </select>
     </div>
-    <div class="form-field">
-      <label>Preferensi Talent</label>
-      <select id="qo-gender">
-        <option value="">— Tidak Ada Preferensi —</option>
-        <option value="female">🌸 Wanita</option>
-        <option value="male">💙 Pria</option>
-      </select>
-    </div>
+
+    <!-- No WA -->
     <div class="form-field">
       <label>No. WhatsApp *</label>
       <input type="text" id="qo-wa" placeholder="08xxxxxxxxxx">
     </div>
+
+    <!-- Catatan -->
     <div class="form-field">
       <label>Catatan (opsional)</label>
       <textarea id="qo-note" rows="2" placeholder="Ceritakan apa yang kamu inginkan..."></textarea>
     </div>
+
+    <!-- Harga -->
     <div class="price-summary">
       <span>Total Harga</span>
       <strong id="qo-price">Pilih layanan &amp; durasi</strong>
     </div>
+
+    <!-- Pilih Talent -->
+    <div style="margin-top:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:.73rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">👥 Pilih Talent</div>
+        <button onclick="selectAllTalents()" id="btn-all-talent" style="padding:5px 14px;border-radius:99px;border:1.5px solid var(--border-pink);background:transparent;color:var(--pink);font-family:'Nunito',sans-serif;font-size:.78rem;font-weight:800;cursor:pointer;transition:all .2s">
+          Semua Talent
+        </button>
+      </div>
+      <div style="font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:12px">
+        Pilih 1 atau lebih talent — atau klik <strong style="color:var(--pink)">Semua Talent</strong>
+      </div>
+
+      <!-- Wanita -->
+      <div style="margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:.7rem;font-weight:800;color:var(--pink);text-transform:uppercase;letter-spacing:.06em">🌸 Wanita</span>
+          <div style="flex:1;height:1px;background:rgba(249,168,201,.2)"></div>
+          <button onclick="selectGender('female')" style="padding:3px 10px;border-radius:99px;border:1px solid rgba(249,168,201,.3);background:transparent;color:var(--pink);font-size:.7rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">Pilih Semua</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px">
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="1" data-name="Nadia" data-gender="female" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-female">🌸 Nadia</span>
+          </label>
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="2" data-name="Bella" data-gender="female" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-female">🌸 Bella</span>
+          </label>
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="3" data-name="Citra" data-gender="female" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-female">🌸 Citra</span>
+          </label>
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="4" data-name="Salsa" data-gender="female" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-female">🌸 Salsa</span>
+          </label>
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="5" data-name="Putri" data-gender="female" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-female">🌸 Putri</span>
+          </label>
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="6" data-name="Rara" data-gender="female" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-female">🌸 Rara</span>
+          </label>
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="7" data-name="Dea" data-gender="female" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-female">🌸 Dea</span>
+          </label>
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="8" data-name="Vika" data-gender="female" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-female">🌸 Vika</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Pria -->
+      <div style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:.7rem;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.06em">💙 Pria</span>
+          <div style="flex:1;height:1px;background:rgba(77,166,232,.2)"></div>
+          <button onclick="selectGender('male')" style="padding:3px 10px;border-radius:99px;border:1px solid rgba(77,166,232,.3);background:transparent;color:var(--blue);font-size:.7rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">Pilih Semua</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px">
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="9" data-name="Rizky" data-gender="male" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-male">💙 Rizky</span>
+          </label>
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="10" data-name="Dimas" data-gender="male" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-male">💙 Dimas</span>
+          </label>
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="11" data-name="Aldi" data-gender="male" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-male">💙 Aldi</span>
+          </label>
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="12" data-name="Fariz" data-gender="male" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-male">💙 Fariz</span>
+          </label>
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="13" data-name="Kevin" data-gender="male" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-male">💙 Kevin</span>
+          </label>
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="14" data-name="Aryo" data-gender="male" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-male">💙 Aryo</span>
+          </label>
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="15" data-name="Bram" data-gender="male" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-male">💙 Bram</span>
+          </label>
+          <label class="talent-pick-item">
+            <input type="checkbox" class="talent-pick-cb" value="16" data-name="Hendra" data-gender="male" onchange="onTalentPickChange()">
+            <span class="talent-pick-pill tp-male">💙 Hendra</span>
+          </label>
+        </div>
+      </div>
+
+      <div id="talent-pick-info" style="margin-top:8px;font-size:.78rem;font-weight:700;color:var(--muted)">
+        0 talent dipilih
+      </div>
+    </div>
+
     <!-- Ketentuan -->
     <div style="margin-top:14px">
       <div style="font-size:.73rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">📋 Ketentuan Layanan</div>
-      <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;max-height:130px;overflow-y:auto;font-size:.82rem;font-weight:600;color:var(--text-muted);line-height:1.75">
-        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">①</span><span>Dilarang membahas topik <strong style="color:var(--text)">sensitif, SARA, dan berbau seksual</strong> dalam bentuk apapun.</span></div>
-        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">②</span><span>Dilarang melakukan <strong style="color:var(--text)">pembayaran di luar agensi</strong>. Semua transaksi wajib melalui CallPay.</span></div>
-        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">③</span><span>Dilarang <strong style="color:var(--text)">meminta kontak pribadi</strong> talent (nomor HP, media sosial, dll).</span></div>
-        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">④</span><span>Dilarang <strong style="color:var(--text)">melecehkan, mengancam, atau bersikap tidak sopan</strong> kepada talent.</span></div>
-        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">⑤</span><span>Layanan <strong style="color:var(--text)">tidak dapat di-refund</strong> apabila sesi sudah dimulai.</span></div>
-        <div style="display:flex;gap:8px"><span style="color:var(--pink);flex-shrink:0">⑥</span><span>Pelanggaran ketentuan mengakibatkan <strong style="color:var(--text)">pemblokiran permanen</strong>.</span></div>
+      <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;max-height:120px;overflow-y:auto;font-size:.81rem;font-weight:600;color:var(--text-muted);line-height:1.75">
+        <div style="display:flex;gap:8px;margin-bottom:7px"><span style="color:var(--pink);flex-shrink:0">①</span><span>Dilarang membahas topik <strong style="color:var(--text)">sensitif, SARA, dan berbau seksual</strong>.</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:7px"><span style="color:var(--pink);flex-shrink:0">②</span><span>Dilarang <strong style="color:var(--text)">pembayaran di luar agensi</strong>. Semua transaksi wajib melalui CallPay.</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:7px"><span style="color:var(--pink);flex-shrink:0">③</span><span>Dilarang <strong style="color:var(--text)">meminta kontak pribadi</strong> talent.</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:7px"><span style="color:var(--pink);flex-shrink:0">④</span><span>Dilarang <strong style="color:var(--text)">melecehkan atau bersikap tidak sopan</strong> kepada talent.</span></div>
+        <div style="display:flex;gap:8px;margin-bottom:7px"><span style="color:var(--pink);flex-shrink:0">⑤</span><span>Layanan <strong style="color:var(--text)">tidak dapat di-refund</strong> apabila sesi sudah dimulai.</span></div>
+        <div style="display:flex;gap:8px"><span style="color:var(--pink);flex-shrink:0">⑥</span><span>Pelanggaran mengakibatkan <strong style="color:var(--text)">pemblokiran permanen</strong>.</span></div>
       </div>
       <label style="display:flex;align-items:center;gap:10px;margin-top:10px;cursor:pointer">
         <input type="checkbox" id="qo-agree" onchange="toggleQOConfirm()" style="width:17px;height:17px;accent-color:var(--pink);cursor:pointer;flex-shrink:0">
         <span style="font-size:.82rem;font-weight:700;color:var(--text)">Saya sudah membaca dan menyetujui peraturan</span>
       </label>
     </div>
+
     <button class="submit-order-btn" id="qo-confirm-btn" onclick="submitQuickOrder()" disabled style="opacity:.4;cursor:not-allowed;margin-top:14px">
       Konfirmasi Pesanan →
     </button>
@@ -322,70 +426,6 @@
 
 
 
-<!-- ══ ORDER MODAL ══════════════════════════════════════════ -->
-<div class="modal-backdrop" id="talent-modal">
-  <div class="modal-box">
-    <div class="modal-head">
-      <h3>Pesan Layanan</h3>
-      <button class="modal-close-btn" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-talent-row">
-      <img id="modal-img" src="" alt="Talent" style="width:64px;height:64px;border-radius:14px;object-fit:cover;object-position:top;flex-shrink:0">
-      <div>
-        <div style="font-size:.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Talent Pilihan</div>
-        <div class="modal-tname" id="modal-tname" style="font-weight:900;font-size:1.05rem;color:var(--text)">—</div>
-        <div class="modal-tmeta" id="modal-tmeta" style="font-size:.8rem;color:var(--text-muted);font-weight:600;margin-top:2px">—</div>
-      </div>
-    </div>
-    <div class="form-field">
-      <label>Layanan *</label>
-      <select id="modal-service" onchange="updateDurations(); updateModalPrice()">
-        <option value="">— Pilih Layanan —</option>
-        <option value="temen-call">📞 Temen Call</option>
-        <option value="sleepcall">🌙 Sleepcall</option>
-        <option value="temen-curhat">🫂 Temen Curhat</option>
-        <option value="pacar-virtual">💕 Pacar Virtual</option>
-      </select>
-    </div>
-    <div class="form-field">
-      <label>Durasi *</label>
-      <select id="modal-duration" onchange="updateModalPrice()">
-        <option value="">— Pilih Layanan Dulu —</option>
-      </select>
-    </div>
-    <div class="form-field">
-      <label>No. WhatsApp *</label>
-      <input type="text" id="modal-wa" placeholder="08xxxxxxxxxx">
-    </div>
-    <div class="form-field">
-      <label>Catatan (opsional)</label>
-      <textarea id="modal-note" rows="2" placeholder="Ceritakan apa yang kamu inginkan..."></textarea>
-    </div>
-    <div class="price-summary">
-      <span>Total Harga</span>
-      <strong id="modal-price">Pilih layanan &amp; durasi</strong>
-    </div>
-    <!-- Ketentuan -->
-    <div style="margin-top:14px">
-      <div style="font-size:.73rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">📋 Ketentuan Layanan</div>
-      <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;max-height:130px;overflow-y:auto;font-size:.82rem;font-weight:600;color:var(--text-muted);line-height:1.75">
-        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">①</span><span>Dilarang membahas topik <strong style="color:var(--text)">sensitif, SARA, dan berbau seksual</strong> dalam bentuk apapun.</span></div>
-        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">②</span><span>Dilarang melakukan <strong style="color:var(--text)">pembayaran di luar agensi</strong>. Semua transaksi wajib melalui CallPay.</span></div>
-        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">③</span><span>Dilarang <strong style="color:var(--text)">meminta kontak pribadi</strong> talent (nomor HP, media sosial, dll).</span></div>
-        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">④</span><span>Dilarang <strong style="color:var(--text)">melecehkan, mengancam, atau bersikap tidak sopan</strong> kepada talent.</span></div>
-        <div style="display:flex;gap:8px;margin-bottom:8px"><span style="color:var(--pink);flex-shrink:0">⑤</span><span>Layanan <strong style="color:var(--text)">tidak dapat di-refund</strong> apabila sesi sudah dimulai.</span></div>
-        <div style="display:flex;gap:8px"><span style="color:var(--pink);flex-shrink:0">⑥</span><span>Pelanggaran ketentuan mengakibatkan <strong style="color:var(--text)">pemblokiran permanen</strong>.</span></div>
-      </div>
-      <label style="display:flex;align-items:center;gap:10px;margin-top:10px;cursor:pointer">
-        <input type="checkbox" id="modal-agree" onchange="toggleModalConfirm()" style="width:17px;height:17px;accent-color:var(--pink);cursor:pointer;flex-shrink:0">
-        <span style="font-size:.82rem;font-weight:700;color:var(--text)">Saya sudah membaca dan menyetujui peraturan</span>
-      </label>
-    </div>
-    <button class="submit-order-btn" id="modal-confirm-btn" onclick="submitOrder()" disabled style="opacity:.4;cursor:not-allowed;margin-top:14px">
-      Konfirmasi Pesanan →
-    </button>
-  </div>
-</div>
 
 
 <script type="module" src="script.js"></script>

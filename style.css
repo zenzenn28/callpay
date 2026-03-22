@@ -620,3 +620,25 @@ button{cursor:pointer;font-family:'Nunito',sans-serif}
   color: #FF5C5C;
 }
 .play-btn:active { transform: scale(0.96); }
+
+/* ── TALENT PICKER ──────────────────────── */
+.talent-pick-item { display:inline-flex; cursor:pointer; }
+.talent-pick-item input { display:none; }
+.talent-pick-pill {
+  padding:6px 14px; border-radius:99px;
+  border:1.5px solid var(--border);
+  font-size:.8rem; font-weight:800;
+  transition:all .2s; user-select:none;
+  background:transparent; color:var(--muted);
+}
+.talent-pick-item input:checked + .tp-female {
+  background:rgba(249,168,201,.15);
+  border-color:var(--pink-mid);
+  color:var(--pink);
+}
+.talent-pick-item input:checked + .tp-male {
+  background:rgba(77,166,232,.15);
+  border-color:var(--blue-mid);
+  color:var(--blue);
+}
+.talent-pick-pill:hover { border-color:var(--pink-mid); color:var(--text); }

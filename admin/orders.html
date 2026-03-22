@@ -111,8 +111,8 @@ function render(orders){
       <td><span class="badge badge-${o.status}">${o.status}</span></td>
       <td style="font-size:.78rem;font-weight:700;color:${rc}">${rem}</td>
       <td style="color:var(--muted);font-size:.78rem">${DB.formatDate(o.date)}</td>
-      <td style="display:flex;gap:6px">
-        <select onchange="changeStatus('${o.id}',this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:4px 6px;font-size:.75rem;font-family:'Nunito',sans-serif">
+      <td style="display:flex;gap:6px;align-items:center">
+        <select data-id="${o.id}" class="status-sel" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:4px 8px;font-size:.75rem;font-family:'Nunito',sans-serif;cursor:pointer">
           ${['baru','proses','selesai','batal'].map(s=>`<option value="${s}"${o.status===s?' selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
         </select>
         <button class="btn btn-icon btn-red" onclick="openDel('${o.id}')">🗑️</button>
@@ -121,7 +121,25 @@ function render(orders){
   }).join('');
 }
 
-window.changeStatus=async(id,status)=>{ await DB.updateOrderStatus(id,status); toast('Status diperbarui ✅'); };
+window.changeStatus=async(id,status)=>{
+  const order = allOrders.find(o => o.id === id);
+  if (!order) { toast('❌ Order tidak ditemukan'); return; }
+  try {
+    if (order._docId) {
+      await DB.updateByDocId(order._docId, status);
+    } else {
+      await DB.updateOrderStatus(id, status);
+    }
+    // Langsung update local state — jangan tunggu Firestore listener
+    order.status = status;
+    if (status === 'proses') order.prosesAt = new Date().toISOString();
+    render(allOrders);
+    toast('Status diperbarui ✅');
+  } catch(e) {
+    console.error('changeStatus error:', e);
+    toast('❌ Gagal update status');
+  }
+};
 window.openDel=(id)=>{ deleteId=id; document.getElementById('del-modal').classList.add('open'); };
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
@@ -130,11 +148,28 @@ document.addEventListener('DOMContentLoaded',async()=>{
   if(!DB.isLoggedIn()){window.location.href='index.html';return;}
   await DB.getSettingsAsync();
   // Realtime
-  DB.onOrdersChange(async orders=>{
-    const synced=await DB.syncStatuses();
-    render(synced.length?synced:orders);
-  });
+  DB.onOrdersChange(orders => render(orders));
+  // Auto selesai kalau timer proses habis (cek tiap 1 menit)
+  setInterval(async()=>{
+    const orders = await DB.getOrders();
+    for (const o of orders) {
+      if (o.status==='proses' && o.prosesAt && o._docId) {
+        const elapsed = Date.now() - new Date(o.prosesAt).getTime();
+        const durMs   = (Number(o.duration)||60)*60*1000;
+        if (elapsed >= durMs) await DB.updateByDocId(o._docId,'selesai');
+      }
+    }
+  }, 60000);
   document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{if(window.innerWidth<=768)closeSidebar();}));
+
+  // Event delegation — lebih reliable dari inline onchange
+  document.getElementById('orders-tbody').addEventListener('change', async(e)=>{
+    const sel = e.target.closest('.status-sel');
+    if (!sel) return;
+    const id     = sel.dataset.id;
+    const status = sel.value;
+    await changeStatus(id, status);
+  });
 });
 </script>
 </body>

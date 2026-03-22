@@ -221,3 +221,17 @@ button{cursor:pointer;font-family:'Nunito',sans-serif}
   .login-card{padding:32px 22px}
   .dash-content{padding:16px 14px}
 }
+
+/* ── SPECIAL BID ─────────────────────────── */
+.order-card-special {
+  border-color: rgba(249,168,201,.35) !important;
+  background: rgba(249,168,201,.04) !important;
+}
+.timer-bar-fill.special {
+  background: linear-gradient(90deg, var(--pink-mid), var(--yellow)) !important;
+}
+.bid-btn-special {
+  background: linear-gradient(135deg, var(--pink-mid), #c44d7a) !important;
+  box-shadow: 0 0 20px rgba(232,98,138,.4) !important;
+}
+.bid-btn-special:hover { opacity:.88; }

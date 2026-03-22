@@ -39,10 +39,9 @@ function renderTalents() {
         <div class="talent-meta">🎂 ${t.age} thn &nbsp;·&nbsp; 🇮🇩 Indonesia</div>
         <div class="talent-tags">${t.services.map(s=>`<span class="talent-tag">${s}</span>`).join('')}</div>
         <div style="display:flex;gap:8px;margin-top:auto">
-          <button class="play-btn" id="play-${t.id}" onclick="playSample(${t.id},'${t.name}','${t.gender}')" title="Dengar suara sample">
+          <button class="play-btn" id="play-${t.id}" onclick="playSample(${t.id},'${t.name}','${t.gender}')" title="Dengar suara sample" style="width:100%">
             ▶ Sample Suara
           </button>
-          <button class="pesan-btn" style="flex:1" onclick="openModal(${t.id})">💬 Pesan</button>
         </div>
       </div>
     </div>`;
@@ -181,12 +180,17 @@ window.submitOrder = async function() {
 //  QUICK ORDER MODAL (tanpa talent)
 // ============================================================
 window.openQuickOrder = function() {
-  document.getElementById('qo-service').value       = '';
-  document.getElementById('qo-duration').innerHTML  = '<option value="">— Pilih Layanan Dulu —</option>';
-  document.getElementById('qo-gender').value        = '';
-  document.getElementById('qo-wa').value            = '';
-  document.getElementById('qo-note').value          = '';
-  document.getElementById('qo-price').textContent   = 'Pilih layanan & durasi';
+  document.getElementById('qo-service').value      = '';
+  document.getElementById('qo-duration').innerHTML = '<option value="">— Pilih Layanan Dulu —</option>';
+  document.getElementById('qo-wa').value           = '';
+  document.getElementById('qo-note').value         = '';
+  document.getElementById('qo-price').textContent  = 'Pilih layanan & durasi';
+  // Reset talent picks
+  document.querySelectorAll('.talent-pick-cb').forEach(cb => cb.checked = false);
+  updateTalentPickInfo();
+  // Reset all-talent button
+  const allBtn = document.getElementById('btn-all-talent');
+  if (allBtn) { allBtn.style.background='transparent'; allBtn.textContent='Semua Talent'; }
   // Reset checkbox & button
   const ag  = document.getElementById('qo-agree');
   const btn = document.getElementById('qo-confirm-btn');
@@ -235,30 +239,144 @@ window.toggleQOConfirm = function() {
 };
 
 window.submitQuickOrder = async function() {
-  const svcEl  = document.getElementById('qo-service');
-  const durEl  = document.getElementById('qo-duration');
-  const gender = document.getElementById('qo-gender').value;
-  const wa     = document.getElementById('qo-wa').value.trim();
-  const note   = document.getElementById('qo-note').value.trim();
+  const svcEl = document.getElementById('qo-service');
+  const durEl = document.getElementById('qo-duration');
+  const wa    = document.getElementById('qo-wa').value.trim();
+  const note  = document.getElementById('qo-note').value.trim();
   if (!svcEl.value || !durEl.value || !wa) {
     alert('Mohon lengkapi layanan, durasi, dan nomor WhatsApp!');
     return;
   }
+
+  // Ambil talent yang dipilih
+  const checked  = [...document.querySelectorAll('.talent-pick-cb:checked')];
+  const allBtn   = document.getElementById('btn-all-talent');
+  const isAllMode = allBtn?.dataset.allSelected === 'true';
+
+  if (!checked.length) {
+    alert('Pilih minimal 1 talent atau klik "Semua Talent"!');
+    return;
+  }
+
+  const selectedTalents = checked.map(cb => ({
+    id  : parseInt(cb.value),
+    name: cb.dataset.name,
+    gender: cb.dataset.gender,
+  }));
+
   const dur      = parseInt(durEl.value);
   const svcLabel = SVC_KEY_TO_LABEL[svcEl.value];
   const price    = PRICES[svcLabel]?.[dur] ?? 0;
 
+  // Hitung total talent per gender
+  const totalFemale = document.querySelectorAll('.talent-pick-cb[data-gender="female"]').length;
+  const totalMale   = document.querySelectorAll('.talent-pick-cb[data-gender="male"]').length;
+  const totalAll    = totalFemale + totalMale;
+
+  const pickedFemale = selectedTalents.filter(t => t.gender === 'female').length;
+  const pickedMale   = selectedTalents.filter(t => t.gender === 'male').length;
+  const pickedTotal  = selectedTalents.length;
+
+  // Bid biasa kalau:
+  // - Semua 16 talent dipilih, ATAU
+  // - Semua wanita (8) dipilih, ATAU
+  // - Semua pria (8) dipilih
+  const isRegular = isAllMode ||
+    pickedTotal === totalAll ||
+    pickedFemale === totalFemale ||
+    pickedMale   === totalMale;
+
+  const bidType = isRegular ? 'regular' : 'special';
+
   const saved = await DB.addOrder({
-    talentId:null, talentName:null, genderPref:gender||null,
+    talentId:null, talentName:null,
     service:svcLabel, duration:dur, price,
     customerWa:wa, customerNote:note,
-    orderType:'quick',
+    orderType    : 'quick',
+    bidType      : bidType,
+    // Kalau semua talent → targetTalents kosong (semua bisa lihat)
+    // Kalau spesifik → isi nama talent yang ditarget
+    targetTalents: isAllMode ? [] : selectedTalents,
   });
 
   closeQuickOrder();
-  // Redirect ke cek-order dengan kode order
   window.location.href = `cek-order.html?code=${encodeURIComponent(saved.id||'')}`;
 };
+
+
+// ============================================================
+//  TALENT PICKER — pilih talent spesifik atau semua
+// ============================================================
+window.selectGender = function(gender) {
+  // Pilih semua talent dari gender tertentu
+  const allBtn = document.getElementById('btn-all-talent');
+  if (allBtn) { allBtn.dataset.allSelected = 'false'; allBtn.style.background='transparent'; allBtn.textContent='Semua Talent'; }
+  document.querySelectorAll(`.talent-pick-cb[data-gender="${gender}"]`).forEach(cb => cb.checked = true);
+  updateTalentPickInfo();
+};
+
+window.onTalentPickChange = function() {
+  // Kalau user uncheck manual, reset all-mode
+  const allBtn = document.getElementById('btn-all-talent');
+  if (allBtn) {
+    allBtn.dataset.allSelected = 'false';
+    allBtn.style.background    = 'transparent';
+    allBtn.textContent         = 'Semua Talent';
+  }
+  updateTalentPickInfo();
+};
+
+window.selectAllTalents = function() {
+  const allBtn = document.getElementById('btn-all-talent');
+  const cbs    = document.querySelectorAll('.talent-pick-cb');
+  const isAll  = allBtn?.dataset.allSelected === 'true';
+
+  if (isAll) {
+    // Toggle off — uncheck all
+    cbs.forEach(cb => cb.checked = false);
+    allBtn.dataset.allSelected = 'false';
+    allBtn.style.background    = 'transparent';
+    allBtn.textContent         = 'Semua Talent';
+  } else {
+    // Check all
+    cbs.forEach(cb => cb.checked = true);
+    allBtn.dataset.allSelected = 'true';
+    allBtn.style.background    = 'rgba(249,168,201,.15)';
+    allBtn.style.borderColor   = 'var(--pink-mid)';
+    allBtn.textContent         = '✓ Semua Talent';
+  }
+  updateTalentPickInfo();
+};
+
+function updateTalentPickInfo() {
+  const allBtn      = document.getElementById('btn-all-talent');
+  const isAll       = allBtn?.dataset.allSelected === 'true';
+  const info        = document.getElementById('talent-pick-info');
+  if (!info) return;
+
+  const totalFemale  = document.querySelectorAll('.talent-pick-cb[data-gender="female"]').length;
+  const totalMale    = document.querySelectorAll('.talent-pick-cb[data-gender="male"]').length;
+  const totalAll     = totalFemale + totalMale;
+  const pickedFemale = document.querySelectorAll('.talent-pick-cb[data-gender="female"]:checked').length;
+  const pickedMale   = document.querySelectorAll('.talent-pick-cb[data-gender="male"]:checked').length;
+  const pickedTotal  = pickedFemale + pickedMale;
+
+  const isRegular = isAll ||
+    pickedTotal === totalAll ||
+    pickedFemale === totalFemale ||
+    pickedMale   === totalMale;
+
+  if (pickedTotal === 0) {
+    info.textContent = '0 talent dipilih';
+    info.style.color = 'var(--muted)';
+  } else if (isRegular) {
+    info.textContent = `✓ ${pickedTotal} talent dipilih — notifikasi bid biasa`;
+    info.style.color = 'var(--green)';
+  } else {
+    info.textContent = `⭐ ${pickedTotal} talent dipilih — notifikasi bid spesial`;
+    info.style.color = 'var(--pink)';
+  }
+}
 
 // ============================================================
 //  SAMPLE SUARA — Web Speech API

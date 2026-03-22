@@ -31,10 +31,10 @@ let timerIntervals= {};  // orderId → intervalId
 let activeTab     = 'incoming'; // 'incoming' | 'assigned'
 
 function getSession() {
-  try { return JSON.parse(sessionStorage.getItem(SESS_KEY)); } catch { return null; }
+  try { return JSON.parse(localStorage.getItem(SESS_KEY)); } catch { return null; }
 }
-function setSession(t) { sessionStorage.setItem(SESS_KEY, JSON.stringify(t)); }
-function clearSession() { sessionStorage.removeItem(SESS_KEY); }
+function setSession(t) { localStorage.setItem(SESS_KEY, JSON.stringify(t)); }
+function clearSession() { localStorage.removeItem(SESS_KEY); }
 
 // ── LOGIN ──────────────────────────────────────────────────────
 async function doLogin() {
@@ -84,6 +84,9 @@ function showDashboard() {
 
   // Set online status
   updateOnlineStatus(true);
+
+  // Init notifikasi
+  setTimeout(initNotifications, 500);
 
   // Listen to orders realtime
   startOrderListener();
@@ -147,9 +150,21 @@ function startOrderListener() {
       if (o.orderType !== 'quick') return false;
       if (o.status !== 'waiting_bid') return false;
       if (o.confirmedTalent) return false;
-      // Check timer not expired
-      const created = o.createdAt?.toDate ? o.createdAt.toDate().getTime() : new Date(o.date).getTime();
-      const timeLeft = (created + 5 * 60 * 1000) - Date.now();
+      // Cek apakah talent ini termasuk yang ditarget
+      // targetTalents kosong [] = semua talent bisa lihat (regular bid)
+      // targetTalents berisi nama = hanya talent yang dipilih (special bid)
+      if (o.targetTalents && Array.isArray(o.targetTalents) && o.targetTalents.length > 0) {
+        const myName   = (currentTalent.name || '').toLowerCase();
+        const isTarget = o.targetTalents.some(t =>
+          (t.name || '').toLowerCase() === myName
+        );
+        if (!isTarget) return false;
+      }
+      // Kalau targetTalents tidak ada atau kosong → semua talent bisa lihat
+      // Timer: special = 6 menit, regular = 5 menit
+      const bidMins  = o.bidType === 'special' ? 6 : 5;
+      const created  = o.createdAt?.toDate ? o.createdAt.toDate().getTime() : new Date(o.date).getTime();
+      const timeLeft = (created + bidMins * 60 * 1000) - Date.now();
       return timeLeft > 0;
     });
 
@@ -161,6 +176,7 @@ function startOrderListener() {
       (o.talentName === currentTalent.name && o.status !== 'waiting_bid')
     );
 
+    checkNewOrders(incoming);
     renderIncoming(incoming);
     renderMyOrders(myOrders);
     updateTabCounts(incoming.length, myOrders.length);
@@ -178,41 +194,48 @@ function renderIncoming(orders) {
   container.innerHTML = orders.map(o => {
     const alreadyBid = (o.bids || []).find(b => b.talentId === currentTalent.id);
     const bidCount   = (o.bids || []).length;
-    const timeLeft   = getTimeLeft(o.createdAt, 3);
+    const bidMins    = o.bidType === 'special' ? 6 : 5;
+    const timeLeft   = getTimeLeft(o.createdAt, bidMins);
     const expired    = timeLeft <= 0;
+    const isSpecial  = o.bidType === 'special';
     const genderPref = o.genderPref
       ? `<span style="background:rgba(249,168,201,.1);color:var(--pink);border:1px solid var(--border-pk);padding:2px 10px;border-radius:99px;font-size:.7rem;font-weight:800">${o.genderPref === 'female' ? '🌸 Wanita' : '💙 Pria'}</span>`
       : '';
 
     return `
-    <div class="order-card" id="ocard-${o.id}">
+    <div class="order-card ${isSpecial ? 'order-card-special' : ''}" id="ocard-${o.id}">
+      ${isSpecial ? `
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:6px 12px;background:rgba(249,168,201,.1);border:1px solid rgba(249,168,201,.25);border-radius:8px">
+        <span style="font-size:.85rem">⭐</span>
+        <span style="font-size:.75rem;font-weight:800;color:var(--pink)">BID SPESIAL — Kamu dipilih khusus oleh customer!</span>
+      </div>` : ''}
       <div class="order-card-head">
         <div>
           <div class="order-id">#${(o.id||'').slice(-8)}</div>
           <div class="order-service">${o.service}</div>
-          <div class="order-meta">⏱ ${getDurLabel(o.duration)} &nbsp;·&nbsp; ${bidCount > 0 ? bidCount + ' talent bid' : 'Belum ada yang bid'} ${genderPref ? '&nbsp;·&nbsp;' + genderPref : ''}</div>
+          <div class="order-meta">⏱ ${getDurLabel(o.duration)} &nbsp;·&nbsp; ${bidCount > 0 ? bidCount + ' talent bid' : 'Belum ada yang bid'}</div>
         </div>
         <div class="order-price">Rp ${(o.price||0).toLocaleString('id-ID')}</div>
       </div>
       ${o.customerNote ? `<div class="order-note">📝 "${o.customerNote}"</div>` : ''}
       <div class="timer-wrap" id="timer-wrap-${o.id}">
         <div class="timer-bar-track">
-          <div class="timer-bar-fill ${timeLeft < 60 ? 'urgent' : ''}" id="tbar-${o.id}" style="width:${getTimerPct(o.createdAt, 5)}%"></div>
+          <div class="timer-bar-fill ${isSpecial ? 'special' : ''} ${timeLeft < 60 ? 'urgent' : ''}" id="tbar-${o.id}" style="width:${getTimerPct(o.createdAt, bidMins)}%"></div>
         </div>
         <div class="timer-text ${timeLeft < 60 ? 'urgent' : ''}" id="ttext-${o.id}">
           ${expired ? 'Waktu habis' : formatTime(timeLeft)}
         </div>
       </div>
-      <button class="bid-btn ${alreadyBid ? 'bidded' : ''}" id="bidbtn-${o.id}"
+      <button class="bid-btn ${alreadyBid ? 'bidded' : ''} ${isSpecial ? 'bid-btn-special' : ''}" id="bidbtn-${o.id}"
         onclick="doBid('${o.id}','${o._docId}')"
         ${(alreadyBid || expired) ? 'disabled' : ''}>
-        ${alreadyBid ? '✅ Sudah Bid' : expired ? 'Waktu Habis' : '🙋 Bid Orderan Ini'}
+        ${alreadyBid ? '✅ Sudah Bid' : expired ? 'Waktu Habis' : isSpecial ? '⭐ Terima Bid Spesial' : '🙋 Bid Orderan Ini'}
       </button>
     </div>`;
   }).join('');
 
   // Start timers
-  orders.forEach(o => startTimer(o.id, o._docId, o.createdAt));
+  orders.forEach(o => startTimer(o.id, o._docId, o.createdAt, o.bidType === 'special' ? 6 : 5));
 }
 
 // ── TIMER ──────────────────────────────────────────────────────
@@ -237,12 +260,13 @@ function formatTime(sec) {
   return `${m}:${String(s).padStart(2,'0')} tersisa`;
 }
 
-function startTimer(orderId, docId, createdAt) {
+function startTimer(orderId, docId, createdAt, bidMins) {
   if (timerIntervals[orderId]) clearInterval(timerIntervals[orderId]);
+  const mins = bidMins || BID_MINUTES;
 
   timerIntervals[orderId] = setInterval(() => {
-    const left    = getTimeLeft(createdAt, BID_MINUTES);
-    const pct     = getTimerPct(createdAt, BID_MINUTES);
+    const left    = getTimeLeft(createdAt, mins);
+    const pct     = getTimerPct(createdAt, mins);
     const urgent  = left < 60;
     const expired = left <= 0;
 
@@ -404,3 +428,122 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Export doBid to window for onclick
 window.doBid = doBid;
+
+// ============================================================
+//  PUSH NOTIFICATION — FCM + Web Notifications API
+//  Notif muncul meskipun browser ditutup (via FCM)
+// ============================================================
+
+const VAPID_KEY = 'BGTV734OtVEVgM-LiL7Xymht9gEjba-uu0y_X_vj-TZkQgGf2r9yhWLqyNXgu6NguDfjD_rrQQtgWtzvOwFNNYA';
+let lastOrderIds = new Set();
+let notifPermission = false;
+
+async function initNotifications() {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+
+  try {
+    // Register service worker
+    const swReg = await navigator.serviceWorker.register('/callpay/firebase-messaging-sw.js');
+
+    // Minta izin notifikasi
+    const permission = await Notification.requestPermission();
+    notifPermission = permission === 'granted';
+
+    if (!notifPermission) { showNotifBanner(false); return; }
+
+    // Import FCM
+    const { getMessaging, getToken, onMessage } =
+      await import('https://www.gstatic.com/firebasejs/12.10.0/firebase-messaging.js');
+
+    const messaging = getMessaging(app);
+
+    // Get FCM token
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: swReg,
+    });
+
+    if (token) {
+      // Simpan token ke Firestore
+      await updateDoc(doc(db, 'talents', currentTalent.id), {
+        fcmToken: token,
+        notifEnabled: true,
+      });
+      showNotifBanner(true);
+
+      // Notif saat app aktif di foreground
+      onMessage(messaging, payload => {
+        const title = payload.notification?.title || '🔔 Order Masuk!';
+        const body  = payload.notification?.body  || 'Ada orderan baru!';
+        showInAppNotif(title, body, payload.data?.isSpecial === 'true');
+      });
+    }
+  } catch(e) {
+    console.error('FCM init error:', e);
+    // Fallback ke Web Notifications biasa
+    const permission = await Notification.requestPermission();
+    notifPermission = permission === 'granted';
+    showNotifBanner(notifPermission);
+  }
+}
+
+function showNotifBanner(enabled) {
+  const existing = document.getElementById('notif-banner');
+  if (existing) existing.remove();
+  const banner = document.createElement('div');
+  banner.id = 'notif-banner';
+  banner.style.cssText = `margin:0 0 16px;padding:12px 16px;border-radius:12px;display:flex;align-items:center;gap:10px;background:${enabled?'rgba(61,214,140,.08)':'rgba(255,184,0,.08)'};border:1px solid ${enabled?'rgba(61,214,140,.25)':'rgba(255,184,0,.25)'};font-size:.82rem;font-weight:700;color:${enabled?'var(--green)':'var(--yellow)'};`;
+  banner.innerHTML = enabled
+    ? `<span>🔔</span><span>Notifikasi aktif — kamu akan diberitahu saat ada order masuk</span>`
+    : `<span>🔕</span><span>Notifikasi belum diaktifkan</span>
+       <button onclick="initNotifications()" style="margin-left:auto;padding:4px 12px;border-radius:99px;border:1px solid currentColor;background:transparent;color:inherit;font-size:.75rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">Aktifkan</button>`;
+  const dashContent = document.querySelector('.dash-content');
+  if (dashContent) dashContent.insertBefore(banner, dashContent.firstChild);
+}
+
+function sendPushNotif(title, body, isSpecial) {
+  // In-app toast
+  const notif = document.createElement('div');
+  notif.style.cssText = `position:fixed;top:70px;right:16px;z-index:9999;background:var(--surface2);border:1px solid ${isSpecial?'rgba(249,168,201,.4)':'rgba(77,166,232,.3)'};border-radius:14px;padding:14px 18px;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.5);font-family:'Nunito',sans-serif;animation:toastIn .3s ease both`;
+  notif.innerHTML = `<div style="font-weight:900;font-size:.9rem;color:${isSpecial?'var(--pink)':'var(--blue)'};margin-bottom:4px">${title}</div><div style="font-size:.82rem;color:var(--muted);font-weight:600">${body}</div>`;
+  document.body.appendChild(notif);
+  setTimeout(() => notif.remove(), 6000);
+
+  // Browser push notification (muncul di HP meskipun tab tidak aktif)
+  if (notifPermission && document.visibilityState !== 'visible') {
+    new Notification(title, {
+      body,
+      icon : '/callpay/assets/logo.png',
+      badge: '/callpay/assets/logo.png',
+      tag  : 'callpay-order-' + Date.now(),
+      renotify: true,
+    });
+  }
+}
+
+function checkNewOrders(orders) {
+  const incoming = orders.filter(o => {
+    if (o.orderType !== 'quick') return false;
+    if (o.status !== 'waiting_bid') return false;
+    if (o.confirmedTalent) return false;
+    if (o.targetTalents && o.targetTalents.length > 0) {
+      const myName = (currentTalent.name||'').toLowerCase();
+      return o.targetTalents.some(t => (t.name||'').toLowerCase() === myName);
+    }
+    const bidMins = o.bidType === 'special' ? 6 : 5;
+    const created = o.createdAt?.toDate ? o.createdAt.toDate().getTime() : new Date(o.date).getTime();
+    return (created + bidMins*60*1000) - Date.now() > 0;
+  });
+
+  incoming.forEach(o => {
+    if (!lastOrderIds.has(o.id)) {
+      lastOrderIds.add(o.id);
+      const isSpecial = o.bidType === 'special';
+      const title = isSpecial ? '⭐ Bid Spesial Untukmu!' : '🔔 Order Masuk!';
+      const body  = `${o.service} · ${o.duration} menit · Rp ${(o.price||0).toLocaleString('id-ID')}`;
+      sendPushNotif(title, body, isSpecial);
+    }
+  });
+}
+
+window.initNotifications = initNotifications;
