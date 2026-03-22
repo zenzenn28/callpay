@@ -483,6 +483,8 @@ async function initNotifications() {
   } catch(e) {
     console.error('❌ FCM error:', e.message);
     showNotifBanner(false);
+    // Debug — tampilkan error di layar sementara
+    toast('❌ FCM Error: ' + e.message);
   }
 }
 
