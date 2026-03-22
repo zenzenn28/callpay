@@ -452,10 +452,9 @@ async function initNotifications() {
     notifPermission = permission === 'granted';
     if (!notifPermission) { showNotifBanner(false); return; }
 
-    // Register service worker
+    // Register service worker — harus sesuai dengan lokasi file
     const swReg = await navigator.serviceWorker.register(
-      '/callpay/firebase-messaging-sw.js',
-      { scope: '/callpay/' }
+      '/callpay/firebase-messaging-sw.js'
     );
 
     // Tunggu SW aktif
@@ -494,9 +493,18 @@ async function initNotifications() {
     });
 
     showNotifBanner(true);
+    console.log('✅ Service Worker registered & notif aktif untuk', currentTalent.name);
   } catch(e) {
-    console.error('Notif init error:', e);
-    showNotifBanner(false);
+    console.error('❌ Notif init error:', e.message);
+    // Fallback — coba register tanpa menunggu aktivasi
+    try {
+      const swReg2 = await navigator.serviceWorker.register('/callpay/firebase-messaging-sw.js');
+      console.log('SW registered (fallback):', swReg2.scope);
+      showNotifBanner(notifPermission);
+    } catch(e2) {
+      console.error('❌ SW register gagal total:', e2.message);
+      showNotifBanner(false);
+    }
   }
 }
 
