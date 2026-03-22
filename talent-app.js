@@ -523,31 +523,34 @@ function showNotifBanner(enabled) {
 }
 
 function sendPushNotif(title, body, isSpecial) {
-  // In-app toast (selalu muncul kalau tab aktif)
+  // In-app toast
   const notif = document.createElement('div');
   notif.style.cssText = `position:fixed;top:70px;right:16px;z-index:9999;background:var(--surface2);border:1px solid ${isSpecial?'rgba(249,168,201,.4)':'rgba(77,166,232,.3)'};border-radius:14px;padding:14px 18px;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.5);font-family:'Nunito',sans-serif;animation:toastIn .3s ease both`;
   notif.innerHTML = `<div style="font-weight:900;font-size:.9rem;color:${isSpecial?'var(--pink)':'var(--blue)'};margin-bottom:4px">${title}</div><div style="font-size:.82rem;color:var(--muted);font-weight:600">${body}</div>`;
   document.body.appendChild(notif);
   setTimeout(() => notif.remove(), 6000);
 
-  // Browser notification — selalu tampil termasuk saat tab di background
-  if (notifPermission) {
+  if (!notifPermission) return;
+
+  const tag = 'callpay-' + Date.now();
+
+  // Coba lewat SW dulu (muncul di notif bar meski tab background)
+  if (navigator.serviceWorker?.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type : 'SHOW_NOTIF',
+      title, body, tag,
+    });
+  } else {
+    // Fallback langsung
     try {
-      const n = new Notification(title, {
+      new Notification(title, {
         body,
         icon    : 'https://zenzenn28.github.io/callpay/assets/logo.png',
-        badge   : 'https://zenzenn28.github.io/callpay/assets/logo.png',
-        tag     : 'callpay-order-' + Date.now(),
+        tag,
         renotify: true,
         vibrate : [300, 100, 300],
       });
-      n.onclick = () => {
-        window.focus();
-        n.close();
-      };
-    } catch(e) {
-      console.error('Notif error:', e);
-    }
+    } catch(e) { console.error('Notif error:', e); }
   }
 }
 
