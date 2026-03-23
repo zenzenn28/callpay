@@ -1,8 +1,8 @@
 // ============================================================
 //  CALLPAY — FIREBASE MESSAGING SERVICE WORKER
 // ============================================================
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.10.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.10.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
   apiKey           : "AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU",
@@ -15,12 +15,9 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background FCM messages
 messaging.onBackgroundMessage(payload => {
-  console.log('Background message:', payload);
   const title = payload.notification?.title || '🔔 Order Masuk!';
   const body  = payload.notification?.body  || 'Ada orderan baru!';
-
   self.registration.showNotification(title, {
     body,
     icon    : 'https://zenzenn28.github.io/callpay/assets/logo.png',
@@ -32,7 +29,6 @@ messaging.onBackgroundMessage(payload => {
   });
 });
 
-// Klik notif → buka talent portal
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(
