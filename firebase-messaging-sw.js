@@ -1,34 +1,31 @@
 // ============================================================
-//  CALLPAY — FIREBASE MESSAGING SERVICE WORKER
+//  CALLPAY — SERVICE WORKER (Web Push)
 // ============================================================
-importScripts('https://www.gstatic.com/firebasejs/12.10.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/12.10.0/firebase-messaging-compat.js');
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', e => e.waitUntil(clients.claim()));
 
-firebase.initializeApp({
-  apiKey           : "AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU",
-  authDomain       : "callpay-28a28.firebaseapp.com",
-  projectId        : "callpay-28a28",
-  storageBucket    : "callpay-28a28.firebasestorage.app",
-  messagingSenderId: "44722427776",
-  appId            : "1:44722427776:web:29d1a297746cd83d685365",
+// Handle Web Push notification
+self.addEventListener('push', e => {
+  let data = {};
+  try { data = e.data?.json() || {}; } catch(err) { data = { title: '🔔 Order Masuk!' }; }
+
+  const title = data.title || '🔔 Order Masuk!';
+  const body  = data.body  || 'Ada orderan baru untukmu!';
+
+  e.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon    : 'https://zenzenn28.github.io/callpay/assets/logo.png',
+      badge   : 'https://zenzenn28.github.io/callpay/assets/logo.png',
+      tag     : 'callpay-order-' + Date.now(),
+      renotify: true,
+      vibrate : [300, 100, 300],
+      data    : { url: 'https://zenzenn28.github.io/callpay/talent.html' },
+    })
+  );
 });
 
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage(payload => {
-  const title = payload.notification?.title || '🔔 Order Masuk!';
-  const body  = payload.notification?.body  || 'Ada orderan baru!';
-  self.registration.showNotification(title, {
-    body,
-    icon    : 'https://zenzenn28.github.io/callpay/assets/logo.png',
-    badge   : 'https://zenzenn28.github.io/callpay/assets/logo.png',
-    tag     : 'callpay-order',
-    renotify: true,
-    vibrate : [300, 100, 300],
-    data    : { url: 'https://zenzenn28.github.io/callpay/talent.html' },
-  });
-});
-
+// Klik notif → buka talent portal
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(
@@ -40,6 +37,3 @@ self.addEventListener('notificationclick', e => {
     })
   );
 });
-
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', e => e.waitUntil(clients.claim()));

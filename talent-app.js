@@ -458,33 +458,25 @@ async function initNotifications() {
     );
     await navigator.serviceWorker.ready;
 
-    // Get FCM token
-    const { getMessaging, getToken } =
-      await import('https://www.gstatic.com/firebasejs/12.10.0/firebase-messaging.js');
-
-    const messaging = getMessaging(app);
-    const token = await getToken(messaging, {
-      vapidKey: VAPID_KEY,
-      serviceWorkerRegistration: swReg,
+    // Gunakan Web Push API langsung dengan VAPID key
+    const subscription = await swReg.pushManager.subscribe({
+      userVisibleOnly     : true,
+      applicationServerKey: VAPID_KEY,
     });
 
-    if (token) {
-      // Simpan FCM token ke Firestore supaya server bisa kirim notif
-      await updateDoc(doc(db, 'talents', currentTalent.id), {
-        fcmToken    : token,
-        notifEnabled: true,
-      });
-      console.log('✅ FCM token saved');
-      showNotifBanner(true);
-    } else {
-      console.warn('⚠️ No FCM token');
-      showNotifBanner(false);
-    }
+    // Simpan push subscription ke Firestore
+    const subJson = JSON.stringify(subscription);
+    await updateDoc(doc(db, 'talents', currentTalent.id), {
+      pushSubscription: subJson,
+      notifEnabled    : true,
+    });
+
+    console.log('✅ Push subscription saved');
+    showNotifBanner(true);
   } catch(e) {
-    console.error('❌ FCM error:', e.message);
+    console.error('❌ Push error:', e.message);
     showNotifBanner(false);
-    // Debug — tampilkan error di layar sementara
-    toast('❌ FCM Error: ' + e.message);
+    toast('❌ Error: ' + e.message);
   }
 }
 
