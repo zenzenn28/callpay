@@ -2,14 +2,15 @@
 //  CALLPAY — TALENT PORTAL SCRIPT
 //  Login via Firestore, bid order, timer 3 menit
 // ============================================================
-import { initializeApp }         from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { initializeApp }         from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore,
          collection, doc,
          getDoc, getDocs, query,
          where, updateDoc,
          onSnapshot, orderBy,
          serverTimestamp,
-         arrayUnion }            from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+         arrayUnion }            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
 
 const FIREBASE_CONFIG = {
   apiKey           : "AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU",
@@ -20,15 +21,19 @@ const FIREBASE_CONFIG = {
   appId            : "1:44722427776:web:29d1a297746cd83d685365",
 };
 
-const app = initializeApp(FIREBASE_CONFIG);
-const db  = getFirestore(app);
+const app       = initializeApp(FIREBASE_CONFIG);
+const db        = getFirestore(app);
+const messaging = getMessaging(app);
+
+// VAPID key baru dari Firebase Console → Cloud Messaging → Web Push certificates
+const VAPID_KEY = 'BDfouwHnofinr95IRWkR7u2G7dT66e8hzfdTJWjbHXQVsmjV6AhGVskwswWrZiEcJ0hsFyE5PEgpoo6eaGLmYaM';
 
 // ── SESSION ────────────────────────────────────────────────────
 const SESS_KEY = 'cp_talent';
 let currentTalent = null;
 let unsubOrders   = null;
-let timerIntervals= {};  // orderId → intervalId
-let activeTab     = 'incoming'; // 'incoming' | 'assigned'
+let timerIntervals= {};
+let activeTab     = 'incoming';
 
 function getSession() {
   try { return JSON.parse(localStorage.getItem(SESS_KEY)); } catch { return null; }
@@ -77,21 +82,13 @@ function showDashboard() {
   document.getElementById('login-page').style.display  = 'none';
   document.getElementById('dashboard').style.display   = 'flex';
 
-  // Set user info
   const initial = currentTalent.name.charAt(0).toUpperCase();
   document.getElementById('t-avatar').textContent   = initial;
   document.getElementById('t-name-top').textContent = currentTalent.name;
 
-  // Set online status
   updateOnlineStatus(true);
-
-  // Init notifikasi
   setTimeout(initNotifications, 500);
-
-  // Listen to orders realtime
   startOrderListener();
-
-  // Default tab
   switchTab('incoming');
 }
 
@@ -116,17 +113,16 @@ async function updateOnlineStatus(online) {
   const text = document.getElementById('status-text');
   const btn  = document.getElementById('status-toggle');
   if (online) {
-    dot.className  = 'status-dot online';
+    dot.className    = 'status-dot online';
     text.textContent = 'Kamu sedang Online — siap menerima order';
     btn.textContent  = 'Set Offline';
     btn.classList.add('active');
   } else {
-    dot.className  = 'status-dot offline';
+    dot.className    = 'status-dot offline';
     text.textContent = 'Kamu sedang Offline — tidak menerima order';
     btn.textContent  = 'Set Online';
     btn.classList.remove('active');
   }
-  // Update Firestore
   try {
     await updateDoc(doc(db, 'talents', currentTalent.id), { online });
   } catch(e) { console.error(e); }
@@ -138,37 +134,26 @@ function toggleStatus() {
 
 // ── ORDER LISTENER ─────────────────────────────────────────────
 function startOrderListener() {
-  // Listen to orders that are waiting for bid OR assigned to this talent
   const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
 
   unsubOrders = onSnapshot(q, snap => {
     const all = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
 
-    // Incoming: quick orders waiting for bid, still within 3 min window, not confirmed
-    const BID_MINS = 5;
     const incoming = all.filter(o => {
       if (o.orderType !== 'quick') return false;
       if (o.status !== 'waiting_bid') return false;
       if (o.confirmedTalent) return false;
-      // Cek apakah talent ini termasuk yang ditarget
-      // targetTalents kosong [] = semua talent bisa lihat (regular bid)
-      // targetTalents berisi nama = hanya talent yang dipilih (special bid)
       if (o.targetTalents && Array.isArray(o.targetTalents) && o.targetTalents.length > 0) {
         const myName   = (currentTalent.name || '').toLowerCase();
-        const isTarget = o.targetTalents.some(t =>
-          (t.name || '').toLowerCase() === myName
-        );
+        const isTarget = o.targetTalents.some(t => (t.name || '').toLowerCase() === myName);
         if (!isTarget) return false;
       }
-      // Kalau targetTalents tidak ada atau kosong → semua talent bisa lihat
-      // Timer: special = 6 menit, regular = 5 menit
       const bidMins  = o.bidType === 'special' ? 6 : 5;
       const created  = o.createdAt?.toDate ? o.createdAt.toDate().getTime() : new Date(o.date).getTime();
       const timeLeft = (created + bidMins * 60 * 1000) - Date.now();
       return timeLeft > 0;
     });
 
-    // My orders: confirmed by customer OR assigned by admin
     const myOrders = all.filter(o =>
       o.confirmedTalent === currentTalent.id ||
       o.confirmedTalentName === currentTalent.name ||
@@ -235,7 +220,6 @@ function renderIncoming(orders) {
     </div>`;
   }).join('');
 
-  // Start timers
   orders.forEach(o => startTimer(o.id, o._docId, o.createdAt, o.bidType === 'special' ? 6 : 5));
 }
 
@@ -244,7 +228,7 @@ const BID_MINUTES = 5;
 
 function getTimeLeft(createdAt, minutes) {
   if (!createdAt) return 0;
-  const created = createdAt.toDate ? createdAt.toDate().getTime() : new Date(createdAt).getTime();
+  const created  = createdAt.toDate ? createdAt.toDate().getTime() : new Date(createdAt).getTime();
   const deadline = created + minutes * 60 * 1000;
   return Math.max(0, Math.floor((deadline - Date.now()) / 1000));
 }
@@ -271,9 +255,9 @@ function startTimer(orderId, docId, createdAt, bidMins) {
     const urgent  = left < 60;
     const expired = left <= 0;
 
-    const bar  = document.getElementById(`tbar-${orderId}`);
-    const txt  = document.getElementById(`ttext-${orderId}`);
-    const btn  = document.getElementById(`bidbtn-${orderId}`);
+    const bar = document.getElementById(`tbar-${orderId}`);
+    const txt = document.getElementById(`ttext-${orderId}`);
+    const btn = document.getElementById(`bidbtn-${orderId}`);
 
     if (!bar) { clearInterval(timerIntervals[orderId]); return; }
 
@@ -283,8 +267,8 @@ function startTimer(orderId, docId, createdAt, bidMins) {
     txt.className   = 'timer-text' + (urgent ? ' urgent' : '');
 
     if (expired && btn && !btn.classList.contains('bidded')) {
-      btn.disabled     = true;
-      btn.textContent  = 'Waktu Habis';
+      btn.disabled    = true;
+      btn.textContent = 'Waktu Habis';
       clearInterval(timerIntervals[orderId]);
     }
   }, 1000);
@@ -303,15 +287,13 @@ async function doBid(orderId, docId) {
     const snap = await getDoc(ref);
     if (!snap.exists()) { toast('Order tidak ditemukan'); return; }
 
-    const data = snap.data();
+    const data     = snap.data();
     const timeLeft = getTimeLeft(data.createdAt, BID_MINUTES);
     if (timeLeft <= 0) { btn.textContent = 'Waktu Habis'; toast('Waktu bid sudah habis'); return; }
 
-    // Check already bid
     const existing = (data.bids || []).find(b => b.talentId === currentTalent.id);
     if (existing) { btn.textContent = '✅ Sudah Bid'; btn.classList.add('bidded'); return; }
 
-    // Add bid — semua talent boleh bid selama 5 menit
     await updateDoc(ref, {
       bids: arrayUnion({
         talentId  : currentTalent.id,
@@ -405,14 +387,12 @@ document.head.appendChild(style);
 
 // ── INIT ───────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  // Check existing session
   const sess = getSession();
   if (sess) {
     currentTalent = sess;
     showDashboard();
   }
 
-  // Login button
   document.getElementById('t-login-btn').onclick = doLogin;
   ['t-user','t-pass'].forEach(id => {
     document.getElementById(id).addEventListener('keydown', e => {
@@ -420,63 +400,55 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Logout
-  document.getElementById('t-logout-btn').onclick = doLogout;
-
-  // Status toggle
-  document.getElementById('status-toggle').onclick = toggleStatus;
-
-  // Tabs
-  document.getElementById('tab-incoming').onclick = () => switchTab('incoming');
-  document.getElementById('tab-assigned').onclick = () => switchTab('assigned');
+  document.getElementById('t-logout-btn').onclick   = doLogout;
+  document.getElementById('status-toggle').onclick  = toggleStatus;
+  document.getElementById('tab-incoming').onclick   = () => switchTab('incoming');
+  document.getElementById('tab-assigned').onclick   = () => switchTab('assigned');
 });
 
-// Export doBid to window for onclick
 window.doBid = doBid;
 
 // ============================================================
-//  PUSH NOTIFICATION — FCM + Web Notifications API
-//  Notif muncul meskipun browser ditutup (via FCM)
+//  PUSH NOTIFICATION — FCM Native via getToken()
 // ============================================================
-
-const VAPID_KEY = 'BGTV734OtVEVgM-LiL7Xymht9gEjba-uu0y_X_vj-TZkQgGf2r9yhWLqyNXgu6NguDfjD_rrQQtgWtzvOwFNNYA';
-let lastOrderIds = new Set();
+let lastOrderIds    = new Set();
 let notifPermission = false;
 
 async function initNotifications() {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
 
-  // Minta izin notifikasi
   const permission = await Notification.requestPermission();
   notifPermission  = permission === 'granted';
   if (!notifPermission) { showNotifBanner(false); return; }
 
   try {
-    // Register service worker
-    const swReg = await navigator.serviceWorker.register(
-      '/callpay/firebase-messaging-sw.js'
-    );
+    // Register service worker FCM
+    await navigator.serviceWorker.register('/callpay/firebase-messaging-sw.js');
     await navigator.serviceWorker.ready;
 
-    // Gunakan Web Push API langsung dengan VAPID key
-    const subscription = await swReg.pushManager.subscribe({
-      userVisibleOnly     : true,
-      applicationServerKey: VAPID_KEY,
-    });
+    // Get FCM token — ini yang kompatibel dengan admin.messaging().send()
+    const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY });
 
-    // Simpan push subscription ke Firestore
-    const subJson = JSON.stringify(subscription);
+    if (!fcmToken) {
+      console.warn('⚠️ FCM token kosong');
+      showNotifBanner(false);
+      return;
+    }
+
+    // Simpan FCM token ke Firestore
     await updateDoc(doc(db, 'talents', currentTalent.id), {
-      pushSubscription: subJson,
-      notifEnabled    : true,
+      fcmToken    : fcmToken,
+      notifEnabled: true,
+      // Hapus pushSubscription lama kalau ada
+      pushSubscription: null,
     });
 
-    console.log('✅ Push subscription saved');
+    console.log('✅ FCM token saved:', fcmToken.slice(0, 20) + '...');
     showNotifBanner(true);
   } catch(e) {
-    console.error('❌ Push error:', e.message);
+    console.error('❌ FCM error:', e.message);
     showNotifBanner(false);
-    toast('❌ Error: ' + e.message);
+    toast('❌ Error notif: ' + e.message);
   }
 }
 
@@ -495,35 +467,12 @@ function showNotifBanner(enabled) {
 }
 
 function sendPushNotif(title, body, isSpecial) {
-  // In-app toast
+  // In-app toast (muncul saat tab aktif)
   const notif = document.createElement('div');
   notif.style.cssText = `position:fixed;top:70px;right:16px;z-index:9999;background:var(--surface2);border:1px solid ${isSpecial?'rgba(249,168,201,.4)':'rgba(77,166,232,.3)'};border-radius:14px;padding:14px 18px;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.5);font-family:'Nunito',sans-serif;animation:toastIn .3s ease both`;
   notif.innerHTML = `<div style="font-weight:900;font-size:.9rem;color:${isSpecial?'var(--pink)':'var(--blue)'};margin-bottom:4px">${title}</div><div style="font-size:.82rem;color:var(--muted);font-weight:600">${body}</div>`;
   document.body.appendChild(notif);
   setTimeout(() => notif.remove(), 6000);
-
-  if (!notifPermission) return;
-
-  const tag = 'callpay-' + Date.now();
-
-  // Coba lewat SW dulu (muncul di notif bar meski tab background)
-  if (navigator.serviceWorker?.controller) {
-    navigator.serviceWorker.controller.postMessage({
-      type : 'SHOW_NOTIF',
-      title, body, tag,
-    });
-  } else {
-    // Fallback langsung
-    try {
-      new Notification(title, {
-        body,
-        icon    : 'https://zenzenn28.github.io/callpay/assets/logo.png',
-        tag,
-        renotify: true,
-        vibrate : [300, 100, 300],
-      });
-    } catch(e) { console.error('Notif error:', e); }
-  }
 }
 
 function checkNewOrders(orders) {
