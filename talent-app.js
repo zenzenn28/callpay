@@ -25,7 +25,7 @@ const app       = initializeApp(FIREBASE_CONFIG);
 const db        = getFirestore(app);
 const messaging = getMessaging(app);
 
-// VAPID key baru dari Firebase Console → Cloud Messaging → Web Push certificates
+// VAPID key dari Firebase Console → Cloud Messaging → Web Push certificates
 const VAPID_KEY = 'BDfouwHnofinr95IRWkR7u2G7dT66e8hzfdTJWjbHXQVsmjV6AhGVskwswWrZiEcJ0hsFyE5PEgpoo6eaGLmYaM';
 
 // ── SESSION ────────────────────────────────────────────────────
@@ -400,16 +400,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  document.getElementById('t-logout-btn').onclick   = doLogout;
-  document.getElementById('status-toggle').onclick  = toggleStatus;
-  document.getElementById('tab-incoming').onclick   = () => switchTab('incoming');
-  document.getElementById('tab-assigned').onclick   = () => switchTab('assigned');
+  document.getElementById('t-logout-btn').onclick  = doLogout;
+  document.getElementById('status-toggle').onclick = toggleStatus;
+  document.getElementById('tab-incoming').onclick  = () => switchTab('incoming');
+  document.getElementById('tab-assigned').onclick  = () => switchTab('assigned');
 });
 
 window.doBid = doBid;
 
 // ============================================================
-//  PUSH NOTIFICATION — FCM Native via getToken()
+//  PUSH NOTIFICATION — FCM Native getToken()
 // ============================================================
 let lastOrderIds    = new Set();
 let notifPermission = false;
@@ -422,11 +422,8 @@ async function initNotifications() {
   if (!notifPermission) { showNotifBanner(false); return; }
 
   try {
-    // Register service worker FCM
-    await navigator.serviceWorker.register('/callpay/firebase-messaging-sw.js');
-    await navigator.serviceWorker.ready;
-
-    // Get FCM token — ini yang kompatibel dengan admin.messaging().send()
+    // FCM otomatis cari firebase-messaging-sw.js di root domain
+    // tidak perlu register SW manual
     const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY });
 
     if (!fcmToken) {
@@ -435,11 +432,9 @@ async function initNotifications() {
       return;
     }
 
-    // Simpan FCM token ke Firestore
     await updateDoc(doc(db, 'talents', currentTalent.id), {
-      fcmToken    : fcmToken,
-      notifEnabled: true,
-      // Hapus pushSubscription lama kalau ada
+      fcmToken        : fcmToken,
+      notifEnabled    : true,
       pushSubscription: null,
     });
 
