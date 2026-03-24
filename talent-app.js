@@ -25,7 +25,6 @@ const app       = initializeApp(FIREBASE_CONFIG);
 const db        = getFirestore(app);
 const messaging = getMessaging(app);
 
-// VAPID key dari Firebase Console → Cloud Messaging → Web Push certificates
 const VAPID_KEY = 'BDfouwHnofinr95IRWkR7u2G7dT66e8hzfdTJWjbHXQVsmjV6AhGVskwswWrZiEcJ0hsFyE5PEgpoo6eaGLmYaM';
 
 // ── SESSION ────────────────────────────────────────────────────
@@ -422,8 +421,16 @@ async function initNotifications() {
   if (!notifPermission) { showNotifBanner(false); return; }
 
   try {
+    // Unregister semua SW lama yang mungkin masih aktif di /callpay/
+    const regs = await navigator.serviceWorker.getRegistrations();
+    for (const reg of regs) {
+      if (reg.scope.includes('/callpay/')) {
+        await reg.unregister();
+        console.log('🗑️ Unregistered old SW:', reg.scope);
+      }
+    }
+
     // FCM otomatis cari firebase-messaging-sw.js di root domain
-    // tidak perlu register SW manual
     const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY });
 
     if (!fcmToken) {
@@ -462,7 +469,7 @@ function showNotifBanner(enabled) {
 }
 
 function sendPushNotif(title, body, isSpecial) {
-  // In-app toast (muncul saat tab aktif)
+  // In-app toast saja (saat tab aktif)
   const notif = document.createElement('div');
   notif.style.cssText = `position:fixed;top:70px;right:16px;z-index:9999;background:var(--surface2);border:1px solid ${isSpecial?'rgba(249,168,201,.4)':'rgba(77,166,232,.3)'};border-radius:14px;padding:14px 18px;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.5);font-family:'Nunito',sans-serif;animation:toastIn .3s ease both`;
   notif.innerHTML = `<div style="font-weight:900;font-size:.9rem;color:${isSpecial?'var(--pink)':'var(--blue)'};margin-bottom:4px">${title}</div><div style="font-size:.82rem;color:var(--muted);font-weight:600">${body}</div>`;
