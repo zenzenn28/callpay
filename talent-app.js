@@ -421,12 +421,14 @@ async function initNotifications() {
   if (!notifPermission) { showNotifBanner(false); return; }
 
   try {
-    // Unregister semua SW lama yang mungkin masih aktif di /callpay/
+    // Unregister semua SW lama
     const regs = await navigator.serviceWorker.getRegistrations();
     for (const reg of regs) {
-      if (reg.scope.includes('/callpay/')) {
+      try {
         await reg.unregister();
-        console.log('🗑️ Unregistered old SW:', reg.scope);
+        console.log('🗑️ Unregistered SW:', reg.scope);
+      } catch(e) {
+        console.warn('⚠️ Failed unregister:', reg.scope);
       }
     }
 
