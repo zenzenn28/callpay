@@ -15,7 +15,6 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background push notification
 messaging.onBackgroundMessage(payload => {
   const title = payload.notification?.title || '🔔 Order Masuk!';
   const body  = payload.notification?.body  || 'Ada orderan baru untukmu!';
@@ -27,19 +26,18 @@ messaging.onBackgroundMessage(payload => {
     tag     : 'callpay-order',
     renotify: true,
     vibrate : [300, 100, 300],
-    data    : { url: 'https://zenzenn28.github.io/callpay/talent-app.html' },
+    data    : { url: 'https://zenzenn28.github.io/callpay/talent.html' },
   });
 });
 
-// Klik notif → buka talent portal
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) {
-        if (c.url.includes('talent-app') && 'focus' in c) return c.focus();
+        if (c.url.includes('talent.html') && 'focus' in c) return c.focus();
       }
-      return clients.openWindow('https://zenzenn28.github.io/callpay/talent-app.html');
+      return clients.openWindow('https://zenzenn28.github.io/callpay/talent.html');
     })
   );
 });
