@@ -421,19 +421,26 @@ async function initNotifications() {
   if (!notifPermission) { showNotifBanner(false); return; }
 
   try {
-    // Unregister semua SW lama
+    // Unregister SW lama di /callpay/ saja
     const regs = await navigator.serviceWorker.getRegistrations();
     for (const reg of regs) {
       try {
-        await reg.unregister();
-        console.log('🗑️ Unregistered SW:', reg.scope);
+        if (reg.scope.includes('/callpay/')) {
+          await reg.unregister();
+          console.log('Unregistered old SW:', reg.scope);
+        }
       } catch(e) {
-        console.warn('⚠️ Failed unregister:', reg.scope);
+        console.warn('Failed unregister:', reg.scope);
       }
     }
 
-    // FCM otomatis cari firebase-messaging-sw.js di root domain
-    const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY });
+    // Register SW baru di root domain, tunggu aktif
+    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    await navigator.serviceWorker.ready;
+    console.log('SW ready:', swReg.scope);
+
+    // Ambil FCM token dengan SW yang sudah aktif
+    const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
 
     if (!fcmToken) {
       console.warn('⚠️ FCM token kosong');
