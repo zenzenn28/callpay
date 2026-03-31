@@ -256,22 +256,14 @@ const DB = {
 
 // ── TALENT MASTER DATA ────────────────────────────────────────
 const TALENTS = [
-  { id:1,  name:'Nadia',  age:21, gender:'female', img:'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&q=80', services:['Temen Call','Sleepcall','Pacar Virtual'] },
-  { id:2,  name:'Bella',  age:22, gender:'female', img:'https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?w=400&q=80', services:['Temen Call','Temen Curhat','Sleepcall'] },
-  { id:3,  name:'Citra',  age:20, gender:'female', img:'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&q=80', services:['Sleepcall','Pacar Virtual'] },
-  { id:4,  name:'Salsa',  age:23, gender:'female', img:'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&q=80', services:['Temen Call','Temen Curhat','Pacar Virtual'] },
-  { id:5,  name:'Putri',  age:21, gender:'female', img:'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&q=80', services:['Temen Curhat','Sleepcall'] },
-  { id:6,  name:'Rara',   age:24, gender:'female', img:'https://images.unsplash.com/photo-1488716820095-cbe80883c496?w=400&q=80', services:['Temen Call','Sleepcall','Pacar Virtual'] },
-  { id:7,  name:'Dea',    age:20, gender:'female', img:'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=400&q=80', services:['Temen Call','Temen Curhat'] },
-  { id:8,  name:'Vika',   age:22, gender:'female', img:'https://images.unsplash.com/photo-1515023115689-589c33041d3c?w=400&q=80', services:['Sleepcall','Pacar Virtual'] },
-  { id:9,  name:'Rizky',  age:23, gender:'male',   img:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80', services:['Temen Call','Sleepcall','Pacar Virtual'] },
-  { id:10, name:'Dimas',  age:24, gender:'male',   img:'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80', services:['Temen Call','Temen Curhat'] },
-  { id:11, name:'Aldi',   age:21, gender:'male',   img:'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&q=80', services:['Sleepcall','Pacar Virtual'] },
-  { id:12, name:'Fariz',  age:22, gender:'male',   img:'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&q=80', services:['Temen Call','Temen Curhat','Sleepcall'] },
-  { id:13, name:'Kevin',  age:23, gender:'male',   img:'https://images.unsplash.com/photo-1463453091185-61582044d556?w=400&q=80', services:['Temen Call','Pacar Virtual'] },
-  { id:14, name:'Aryo',   age:25, gender:'male',   img:'https://images.unsplash.com/photo-1488161628813-04466f872be2?w=400&q=80', services:['Temen Curhat','Sleepcall'] },
-  { id:15, name:'Bram',   age:22, gender:'male',   img:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80', services:['Temen Call','Sleepcall','Pacar Virtual'] },
-  { id:16, name:'Hendra', age:24, gender:'male',   img:'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&q=80', services:['Temen Curhat','Pacar Virtual'] },
+  { id:1,  name:'Nadia',  age:21, gender:'female', img:'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&q=80', services:['Temen Call','Sleepcall','Pacar Virtual'], audio:'' },
+  { id:2,  name:'Bella',  age:22, gender:'female', img:'https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?w=400&q=80', services:['Temen Call','Temen Curhat','Sleepcall'], audio:'' },
+  { id:3,  name:'Citra',  age:20, gender:'female', img:'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&q=80', services:['Sleepcall','Pacar Virtual'], audio:'' },
+  { id:4,  name:'Salsa',  age:23, gender:'female', img:'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&q=80', services:['Temen Call','Temen Curhat','Pacar Virtual'], audio:'' },
+  { id:9,  name:'Rizky',  age:23, gender:'male',   img:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80', services:['Temen Call','Sleepcall','Pacar Virtual'], audio:'' },
+  { id:10, name:'Dimas',  age:24, gender:'male',   img:'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80', services:['Temen Call','Temen Curhat'], audio:'' },
+  { id:11, name:'Aldi',   age:21, gender:'male',   img:'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&q=80', services:['Sleepcall','Pacar Virtual'], audio:'' },
+  { id:12, name:'Fariz',  age:22, gender:'male',   img:'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&q=80', services:['Temen Call','Temen Curhat','Sleepcall'], audio:'' },
 ];
 
 const PRICES = {

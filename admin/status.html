@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Status Talent — CallPay Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+  <style>
+    .status-summary{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+    .summary-card{flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;text-align:center}
+    .summary-num{font-size:2rem;font-weight:900;line-height:1}
+    .summary-num.green{color:var(--green)}
+    .summary-num.red{color:var(--red)}
+    .summary-num.muted{color:var(--muted)}
+    .summary-lbl{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+    .talent-status-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+    .ts-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:12px;transition:border-color .2s;flex-wrap:wrap}
+    .ts-card.online{border-color:rgba(61,214,140,.3);background:rgba(61,214,140,.04)}
+    .ts-photo{width:46px;height:46px;border-radius:10px;object-fit:cover;object-position:top;flex-shrink:0;background:var(--surface2)}
+    .ts-photo-ph{width:46px;height:46px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+    .ts-info{flex:1;min-width:80px}
+    .ts-name{font-weight:900;font-size:.92rem;margin-bottom:2px}
+    .ts-meta{font-size:.72rem;color:var(--muted);font-weight:600}
+    .ts-badge{display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:800;padding:3px 10px;border-radius:99px}
+    .ts-badge.online{background:rgba(61,214,140,.12);color:var(--green);border:1px solid rgba(61,214,140,.25)}
+    .ts-badge.offline{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border)}
+    .ts-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+    .ts-dot.online{background:var(--green)}
+    .ts-dot.offline{background:var(--muted)}
+    .ts-toggle{padding:5px 12px;border-radius:99px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:.72rem;font-weight:800;cursor:pointer;transition:all .2s;white-space:nowrap}
+    .ts-toggle:hover{border-color:var(--pink);color:var(--pink)}
+    .ts-toggle.set-offline{border-color:rgba(255,92,92,.3);color:var(--red)}
+    .ts-toggle.set-offline:hover{background:rgba(255,92,92,.08)}
+    .filter-wrap{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+    @media(max-width:768px){.talent-status-grid{grid-template-columns:1fr}}
+  </style>
+<script>
+function toggleSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;const open=sb.classList.toggle('open');ov.classList.toggle('open',open);btn.textContent=open?'✕':'☰';}
+function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;sb.classList.remove('open');ov.classList.remove('open');btn.textContent='☰';}
+</script>
+</head>
+<body>
+<div class="app">
+  <div class="mobile-topbar"><span class="mobile-logo">CallPay</span><button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button></div>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar">
+    <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">Admin Panel</div></div>
+    <nav class="sidebar-nav">
+      <a href="index.html"         class="nav-item"><span class="nav-icon">📊</span>Dashboard</a>
+      <a href="orders.html"        class="nav-item"><span class="nav-icon">📦</span>Order</a>
+      <a href="unassigned.html"    class="nav-item"><span class="nav-icon">🎯</span>Assign Talent</a>
+      <a href="talents.html"       class="nav-item"><span class="nav-icon">👥</span>Talent</a>
+      <a href="status.html"        class="nav-item active"><span class="nav-icon">🟢</span>Status Talent</a>
+      <a href="create-talent.html" class="nav-item"><span class="nav-icon">➕</span>Buat Akun Talent</a>
+      <a href="review.html"        class="nav-item"><span class="nav-icon">📋</span>Review Talent</a>
+      <a href="settings.html"      class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
+      <a href="../index.html"      class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" id="logout-btn">Logout →</button></div>
+  </aside>
+  <main class="main">
+    <div class="page-header"><h1>Status Talent 🟢</h1><p>Monitor status online/offline semua talent secara realtime</p></div>
+    <div class="status-summary">
+      <div class="summary-card"><div class="summary-num green" id="sum-online">0</div><div class="summary-lbl">🟢 Online</div></div>
+      <div class="summary-card"><div class="summary-num red" id="sum-offline">0</div><div class="summary-lbl">⚫ Offline</div></div>
+      <div class="summary-card"><div class="summary-num muted" id="sum-total">0</div><div class="summary-lbl">Total Talent</div></div>
+    </div>
+    <div class="filter-wrap">
+      <button class="btn btn-pink filt" onclick="setFilt('all',this)">Semua</button>
+      <button class="btn btn-outline filt" onclick="setFilt('online',this)">🟢 Online</button>
+      <button class="btn btn-outline filt" onclick="setFilt('offline',this)">⚫ Offline</button>
+    </div>
+    <div class="talent-status-grid" id="status-grid"><p style="color:var(--muted)">Memuat data...</p></div>
+  </main>
+</div>
+
+<script type="module">
+import { DB, TALENTS } from './data.js';
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
+import { getFirestore, doc, setDoc, onSnapshot, collection } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+
+const _app = getApps().length ? getApps()[0] : initializeApp({apiKey:'AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU',authDomain:'callpay-28a28.firebaseapp.com',projectId:'callpay-28a28',storageBucket:'callpay-28a28.firebasestorage.app',messagingSenderId:'44722427776',appId:'1:44722427776:web:29d1a297746cd83d685365'});
+const _db = getFirestore(_app);
+
+let firestoreMap = {}, _filt = 'all';
+
+document.getElementById('logout-btn').onclick = () => { DB.setLogin(false); window.location.href='index.html'; };
+document.getElementById('back-web').onclick   = () => { if(confirm('Logout dari admin?')){ DB.setLogin(false); window.location.href='../index.html'; } return false; };
+
+window.setFilt = (v, el) => {
+  _filt = v;
+  document.querySelectorAll('.filt').forEach(b => b.className='btn btn-outline filt');
+  el.className = 'btn btn-pink filt';
+  render();
+};
+
+window.toggleTalentStatus = async (docId) => {
+  const current = firestoreMap[docId]?.online || false;
+  await setDoc(doc(_db, 'talents', docId), { online: !current }, { merge: true });
+};
+
+function buildCombined() {
+  // Gabungkan: hardcode sebagai base, merge dengan Firestore
+  const result = TALENTS.map(t => {
+    const fsData = firestoreMap[t.name.toLowerCase()];
+    return fsData ? { ...t, ...fsData, id: t.id, name: fsData.name||t.name, _docId: t.name.toLowerCase() }
+                  : { ...t, _docId: t.name.toLowerCase() };
+  });
+  // Tambah talent baru dari Firestore yang approved
+  const hardcodeNames = new Set(TALENTS.map(t => t.name.toLowerCase()));
+  Object.entries(firestoreMap).forEach(([docId, data]) => {
+    if (!hardcodeNames.has(docId) && (data.status==='approved') && data.name) {
+      result.push({ id: docId, _docId: docId, ...data });
+    }
+  });
+  return result.filter(t => t.name);
+}
+
+function render() {
+  const combined = buildCombined();
+  const list = combined.filter(t => {
+    const online = firestoreMap[t._docId]?.online === true;
+    if (_filt === 'online')  return online;
+    if (_filt === 'offline') return !online;
+    return true;
+  });
+
+  const onlineCount  = combined.filter(t => firestoreMap[t._docId]?.online === true).length;
+  document.getElementById('sum-online').textContent  = onlineCount;
+  document.getElementById('sum-offline').textContent = combined.length - onlineCount;
+  document.getElementById('sum-total').textContent   = combined.length;
+
+  if (!list.length) {
+    document.getElementById('status-grid').innerHTML = '<p style="color:var(--muted);grid-column:1/-1">Tidak ada talent.</p>';
+    return;
+  }
+
+  document.getElementById('status-grid').innerHTML = list.map(t => {
+    const online = firestoreMap[t._docId]?.online === true;
+    const img    = t.img || '';
+    return `
+    <div class="ts-card ${online?'online':'offline'}">
+      ${img ? `<img class="ts-photo" src="${img}" alt="${t.name}" onerror="this.style.display='none'">` : `<div class="ts-photo-ph">👤</div>`}
+      <div class="ts-info">
+        <div class="ts-name">${t.name}</div>
+        <div class="ts-meta">${t.age||'-'} thn · ${t.gender==='female'?'Wanita':'Pria'}</div>
+      </div>
+      <div class="ts-badge ${online?'online':'offline'}">
+        <span class="ts-dot ${online?'online':'offline'}"></span>
+        ${online?'Online':'Offline'}
+      </div>
+      <button class="ts-toggle ${online?'set-offline':''}" onclick="toggleTalentStatus('${t._docId}')">
+        ${online?'Set Offline':'Set Online'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!DB.isLoggedIn()) { window.location.href='index.html'; return; }
+  await DB.getSettingsAsync();
+  onSnapshot(collection(_db,'talents'), snap => {
+    firestoreMap = {};
+    snap.forEach(d => { firestoreMap[d.id] = d.data(); });
+    render();
+  });
+  document.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', () => { if(window.innerWidth<=768) closeSidebar(); }));
+});
+</script>
+</body>
+</html>

@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="admin.css">
   <style>
-    .talent-row{display:grid;grid-template-columns:48px 1fr 120px 150px 24px;align-items:center;gap:16px;padding:14px 18px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);margin-bottom:10px;transition:all .2s;cursor:pointer;}
+    .talent-row{display:grid;grid-template-columns:48px 1fr 100px 120px 150px 24px;align-items:center;gap:16px;padding:14px 18px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);margin-bottom:10px;transition:all .2s;cursor:pointer;}
     .talent-row:hover{border-color:var(--border-pk);background:var(--surface2)}
     .talent-row img{width:48px;height:48px;border-radius:10px;object-fit:cover;object-position:top}
     .tr-name{font-weight:900;font-size:.95rem;margin-bottom:3px}
@@ -21,7 +21,10 @@
     .gender-badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.7rem;font-weight:800}
     .gb-f{background:rgba(249,168,201,.1);color:var(--pink);border:1px solid var(--border-pk)}
     .gb-m{background:rgba(168,213,249,.1);color:var(--blue);border:1px solid var(--border-bl)}
-    @media(max-width:768px){.talent-row{grid-template-columns:44px 1fr auto!important;gap:10px}.tr-stats:last-of-type{display:none}}
+    .tr-point{text-align:center}
+    .tr-point-val{font-weight:900;font-size:1rem;color:#a78bfa}
+    .tr-point-lbl{font-size:.7rem;color:var(--muted);font-weight:700;margin-top:1px}
+    @media(max-width:768px){.talent-row{grid-template-columns:44px 1fr auto!important;gap:10px}.tr-stats:last-of-type{display:none}.tr-point{display:none}}
   </style>
 <script>
 function toggleSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;const open=sb.classList.toggle('open');ov.classList.toggle('open',open);btn.textContent=open?'✕':'☰';}
@@ -35,12 +38,15 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
   <aside class="sidebar">
     <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">Admin Panel</div></div>
     <nav class="sidebar-nav">
-      <a href="index.html"      class="nav-item"><span class="nav-icon">📊</span>Dashboard</a>
-      <a href="orders.html"     class="nav-item"><span class="nav-icon">📦</span>Order</a>
-      <a href="unassigned.html" class="nav-item"><span class="nav-icon">🎯</span>Assign Talent</a>
-      <a href="talents.html"    class="nav-item active"><span class="nav-icon">👥</span>Talent</a>
-      <a href="settings.html"   class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
-      <a href="../index.html"   class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
+      <a href="index.html"         class="nav-item"><span class="nav-icon">📊</span>Dashboard</a>
+      <a href="orders.html"        class="nav-item"><span class="nav-icon">📦</span>Order</a>
+      <a href="unassigned.html"    class="nav-item"><span class="nav-icon">🎯</span>Assign Talent</a>
+      <a href="talents.html"       class="nav-item active"><span class="nav-icon">👥</span>Talent</a>
+      <a href="status.html"        class="nav-item"><span class="nav-icon">🟢</span>Status Talent</a>
+      <a href="create-talent.html" class="nav-item"><span class="nav-icon">➕</span>Buat Akun Talent</a>
+      <a href="review.html"        class="nav-item"><span class="nav-icon">📋</span>Review Talent</a>
+      <a href="settings.html"      class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
+      <a href="../index.html"      class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" id="logout-btn">Logout →</button></div>
   </aside>
@@ -56,8 +62,13 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
 </div>
 <script type="module">
 import { DB, TALENTS } from './data.js';
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
+import { getFirestore, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 
-let allOrders=[], filt='all';
+const _app = getApps().length ? getApps()[0] : initializeApp({apiKey:'AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU',authDomain:'callpay-28a28.firebaseapp.com',projectId:'callpay-28a28',storageBucket:'callpay-28a28.firebasestorage.app',messagingSenderId:'44722427776',appId:'1:44722427776:web:29d1a297746cd83d685365'});
+const _db = getFirestore(_app);
+
+let allOrders=[], filt='all', firestoreMap={};
 
 document.getElementById('logout-btn').onclick=()=>{DB.setLogin(false);window.location.href='index.html';};
 document.getElementById('back-web').onclick=()=>{if(confirm('Logout dari admin?')){DB.setLogin(false);window.location.href='../index.html';}return false;};
@@ -69,21 +80,51 @@ window.setFilt=(v,el)=>{
   render();
 };
 
+function buildCombined() {
+  const result = TALENTS.map(t => {
+    const fsData = firestoreMap[t.name.toLowerCase()];
+    if (fsData) {
+      return { ...t, ...fsData, id: t.id, name: fsData.name || t.name };
+    }
+    return t;
+  });
+  const hardcodeNames = new Set(TALENTS.map(t => t.name.toLowerCase()));
+  Object.entries(firestoreMap).forEach(([docId, data]) => {
+    if (!hardcodeNames.has(docId) && (data.status === 'approved') && data.name) {
+      result.push({ id: docId, ...data });
+    }
+  });
+  return result.filter(t => t.name);
+}
+
 function render(){
-  const cfg=DB.getSettings();
-  const cut=cfg.agencyCut/100;
-  let list=filt==='all'?TALENTS:TALENTS.filter(t=>t.gender===filt);
-  const stats={};
-  TALENTS.forEach(t=>{stats[t.name]={count:0,gross:0};});
-  allOrders.forEach(o=>{if(stats[o.talentName]){stats[o.talentName].count++;if(o.status==='selesai')stats[o.talentName].gross+=(o.price||0);}});
-  list=[...list].sort((a,b)=>(stats[b.name]?.count||0)-(stats[a.name]?.count||0));
-  document.getElementById('talent-list').innerHTML=list.map(t=>{
-    const st=stats[t.name]||{count:0,gross:0};
-    const net=Math.round(st.gross*(1-cut));
+  const cfg = DB.getSettings();
+  const cut = cfg.agencyCut / 100;
+  const combined = buildCombined();
+  let list = filt === 'all' ? combined : combined.filter(t => t.gender === filt);
+  const stats = {};
+  combined.forEach(t => { stats[t.name] = { count:0, gross:0 }; });
+  allOrders.forEach(o => {
+    if (stats[o.talentName]) {
+      stats[o.talentName].count++;
+      if (o.status === 'selesai') stats[o.talentName].gross += (o.price||0);
+    }
+  });
+  list = [...list].sort((a,b) => (stats[b.name]?.count||0) - (stats[a.name]?.count||0));
+  if (!list.length) { document.getElementById('talent-list').innerHTML='<p style="color:var(--muted)">Belum ada talent aktif.</p>'; return; }
+  document.getElementById('talent-list').innerHTML = list.map(t => {
+    const st  = stats[t.name] || { count:0, gross:0 };
+    const net = Math.round(st.gross * (1 - cut));
+    const img = t.img || '';
+    // Ambil point dari firestoreMap, default 100
+    const fsKey = typeof t.id === 'number' ? t.name.toLowerCase() : String(t.id);
+    const fsData = firestoreMap[fsKey] || firestoreMap[t.name.toLowerCase()] || {};
+    const points = fsData.points !== undefined ? fsData.points : 100;
     return `<div class="talent-row" onclick="window.location.href='talent-detail.html?id=${t.id}'">
-      <img src="${t.img}" alt="${t.name}">
+      <img src="${img}" alt="${t.name}" onerror="this.style.display='none'">
       <div><div class="tr-name">${t.name} <span class="gender-badge ${t.gender==='female'?'gb-f':'gb-m'}">${t.gender==='female'?'Wanita':'Pria'}</span></div>
-      <div class="tr-meta">Umur ${t.age} thn · ${t.services.join(', ')}</div></div>
+      <div class="tr-meta">Umur ${t.age||'-'} thn · ${(t.services||[]).join(', ')||'-'}</div></div>
+      <div class="tr-point"><div class="tr-point-val">⭐ ${points}</div><div class="tr-point-lbl">Point</div></div>
       <div class="tr-stats"><div class="tr-stat-val">${st.count}</div><div class="tr-stat-lbl">Total Order</div></div>
       <div class="tr-stats"><div class="tr-stat-val green">${DB.formatRp(net)}</div><div class="tr-stat-lbl">Pendapatan</div></div>
       <div class="tr-arrow">›</div>
@@ -91,11 +132,16 @@ function render(){
   }).join('');
 }
 
-document.addEventListener('DOMContentLoaded',async()=>{
-  if(!DB.isLoggedIn()){window.location.href='index.html';return;}
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!DB.isLoggedIn()) { window.location.href='index.html'; return; }
   await DB.getSettingsAsync();
-  DB.onOrdersChange(orders=>{allOrders=orders;render();});
-  document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{if(window.innerWidth<=768)closeSidebar();}));
+  onSnapshot(collection(_db,'talents'), snap => {
+    firestoreMap = {};
+    snap.forEach(d => { firestoreMap[d.id] = d.data(); });
+    render();
+  });
+  DB.onOrdersChange(orders => { allOrders=orders; render(); });
+  document.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', () => { if(window.innerWidth<=768) closeSidebar(); }));
 });
 </script>
 </body>

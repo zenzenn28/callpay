@@ -1,498 +1,480 @@
 // ============================================================
-//  CALLPAY — TALENT PORTAL SCRIPT
-//  Login via Firestore, bid order, timer 3 menit
+//  CALLPAY — TALENT APP v3
+//  - Hapus tab Order Masuk
+//  - Tambah tab Setting (edit profil → pending admin)
 // ============================================================
-import { initializeApp }         from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore,
-         collection, doc,
-         getDoc, getDocs, query,
-         where, updateDoc,
-         onSnapshot, orderBy,
-         serverTimestamp,
-         arrayUnion }            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+import { DB, DUR_LABEL } from './admin/data.js';
 
 const FIREBASE_CONFIG = {
-  apiKey           : "AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU",
-  authDomain       : "callpay-28a28.firebaseapp.com",
-  projectId        : "callpay-28a28",
-  storageBucket    : "callpay-28a28.firebasestorage.app",
-  messagingSenderId: "44722427776",
-  appId            : "1:44722427776:web:29d1a297746cd83d685365",
+  apiKey:'AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU',
+  authDomain:'callpay-28a28.firebaseapp.com',
+  projectId:'callpay-28a28',
+  storageBucket:'callpay-28a28.firebasestorage.app',
+  messagingSenderId:'44722427776',
+  appId:'1:44722427776:web:29d1a297746cd83d685365'
 };
+const app = getApps().length ? getApps()[0] : initializeApp(FIREBASE_CONFIG);
+const db  = getFirestore(app);
 
-const app       = initializeApp(FIREBASE_CONFIG);
-const db        = getFirestore(app);
-const messaging = getMessaging(app);
+const CLOUDINARY_CLOUD  = 'dnbjw43hp';
+const CLOUDINARY_PRESET = 'callpay_audio';
+const ALL_SERVICES = ['Temen Call','Sleepcall','Temen Curhat','Pacar Virtual'];
+const SESSION_KEY  = 'cp_talent_v2';
 
-// VAPID key dari Firebase Console → Cloud Messaging → Web Push certificates
-const VAPID_KEY = 'BDfouwHnofinr95IRWkR7u2G7dT66e8hzfdTJWjbHXQVsmjV6AhGVskwswWrZiEcJ0hsFyE5PEgpoo6eaGLmYaM';
-
-// ── SESSION ────────────────────────────────────────────────────
-const SESS_KEY = 'cp_talent';
 let currentTalent = null;
-let unsubOrders   = null;
-let timerIntervals= {};
-let activeTab     = 'incoming';
+let _docId        = null;
+let _uploadedAudioUrl = '';
+let _uploadedPhotoUrl = '';
 
-function getSession() {
-  try { return JSON.parse(localStorage.getItem(SESS_KEY)); } catch { return null; }
-}
-function setSession(t) { localStorage.setItem(SESS_KEY, JSON.stringify(t)); }
-function clearSession() { localStorage.removeItem(SESS_KEY); }
+// ── SESSION ───────────────────────────────────────────────
+function getSession() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)); } catch { return null; } }
+function setSession(d) { sessionStorage.setItem(SESSION_KEY, JSON.stringify(d)); }
+function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
 
-// ── LOGIN ──────────────────────────────────────────────────────
-async function doLogin() {
-  const u   = document.getElementById('t-user').value.trim().toLowerCase();
-  const p   = document.getElementById('t-pass').value;
-  const err = document.getElementById('t-err');
-  const btn = document.getElementById('t-login-btn');
-
-  if (!u || !p) { showErr('Username dan password wajib diisi'); return; }
-
-  btn.textContent = 'Memuat...';
-  btn.disabled    = true;
-
-  try {
-    const ref  = doc(db, 'talents', u);
-    const snap = await getDoc(ref);
-
-    if (!snap.exists()) { showErr('Username tidak ditemukan'); reset(); return; }
-
-    const data = snap.data();
-    if (data.password !== p) { showErr('Password salah'); reset(); return; }
-    if (data.active === false) { showErr('Akun kamu sedang tidak aktif'); reset(); return; }
-
-    currentTalent = { id: u, ...data };
-    setSession(currentTalent);
-    err.style.display = 'none';
-    showDashboard();
-  } catch(e) {
-    showErr('Gagal terhubung ke server. Coba lagi.');
-    console.error(e);
-  }
-  reset();
-
-  function showErr(msg) { err.textContent = '❌ ' + msg; err.style.display = 'block'; }
-  function reset() { btn.textContent = 'Masuk'; btn.disabled = false; }
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' toast-' + type : '');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-// ── DASHBOARD ──────────────────────────────────────────────────
-function showDashboard() {
-  document.getElementById('login-page').style.display  = 'none';
-  document.getElementById('dashboard').style.display   = 'flex';
-
-  const initial = currentTalent.name.charAt(0).toUpperCase();
-  document.getElementById('t-avatar').textContent   = initial;
-  document.getElementById('t-name-top').textContent = currentTalent.name;
-
-  updateOnlineStatus(true);
-  setTimeout(initNotifications, 500);
-  startOrderListener();
-  switchTab('incoming');
-}
-
-function doLogout() {
-  if (unsubOrders) unsubOrders();
-  Object.values(timerIntervals).forEach(clearInterval);
-  timerIntervals = {};
-  clearSession();
-  currentTalent = null;
-  document.getElementById('dashboard').style.display   = 'none';
-  document.getElementById('login-page').style.display  = 'flex';
-  document.getElementById('t-user').value = '';
-  document.getElementById('t-pass').value = '';
-}
-
-// ── ONLINE STATUS ──────────────────────────────────────────────
-let isOnline = true;
-
-async function updateOnlineStatus(online) {
-  isOnline = online;
-  const dot  = document.getElementById('status-dot');
-  const text = document.getElementById('status-text');
-  const btn  = document.getElementById('status-toggle');
-  if (online) {
-    dot.className    = 'status-dot online';
-    text.textContent = 'Kamu sedang Online — siap menerima order';
-    btn.textContent  = 'Set Offline';
-    btn.classList.add('active');
-  } else {
-    dot.className    = 'status-dot offline';
-    text.textContent = 'Kamu sedang Offline — tidak menerima order';
-    btn.textContent  = 'Set Online';
-    btn.classList.remove('active');
-  }
-  try {
-    await updateDoc(doc(db, 'talents', currentTalent.id), { online });
-  } catch(e) { console.error(e); }
-}
-
-function toggleStatus() {
-  updateOnlineStatus(!isOnline);
-}
-
-// ── ORDER LISTENER ─────────────────────────────────────────────
-function startOrderListener() {
-  const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-
-  unsubOrders = onSnapshot(q, snap => {
-    const all = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
-
-    const incoming = all.filter(o => {
-      if (o.orderType !== 'quick') return false;
-      if (o.status !== 'waiting_bid') return false;
-      if (o.confirmedTalent) return false;
-      if (o.targetTalents && Array.isArray(o.targetTalents) && o.targetTalents.length > 0) {
-        const myName   = (currentTalent.name || '').toLowerCase();
-        const isTarget = o.targetTalents.some(t => (t.name || '').toLowerCase() === myName);
-        if (!isTarget) return false;
-      }
-      const bidMins  = o.bidType === 'special' ? 6 : 5;
-      const created  = o.createdAt?.toDate ? o.createdAt.toDate().getTime() : new Date(o.date).getTime();
-      const timeLeft = (created + bidMins * 60 * 1000) - Date.now();
-      return timeLeft > 0;
-    });
-
-    const myOrders = all.filter(o =>
-      o.confirmedTalent === currentTalent.id ||
-      o.confirmedTalentName === currentTalent.name ||
-      (o.talentId === currentTalent.id && o.status !== 'waiting_bid') ||
-      (o.talentName === currentTalent.name && o.status !== 'waiting_bid')
-    );
-
-    checkNewOrders(incoming);
-    renderIncoming(incoming);
-    renderMyOrders(myOrders);
-    updateTabCounts(incoming.length, myOrders.length);
+function showPage(id) {
+  // display yang benar untuk tiap page
+  const displayMap = { 'login-page': 'flex', 'dashboard': 'flex', 'setup-page': 'block' };
+  ['login-page','dashboard','setup-page'].forEach(p => {
+    const el = document.getElementById(p);
+    if (!el) return;
+    el.style.display = (p === id) ? (displayMap[p] || 'block') : 'none';
   });
 }
 
-// ── RENDER INCOMING ORDERS ─────────────────────────────────────
-function renderIncoming(orders) {
-  const container = document.getElementById('incoming-list');
-  if (!orders.length) {
-    container.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><p>Belum ada order masuk</p></div>`;
-    return;
+// ── LOGIN ─────────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('t-user').value.trim().toLowerCase();
+  const password = document.getElementById('t-pass').value.trim();
+  const errEl    = document.getElementById('t-err');
+  const btn      = document.getElementById('t-login-btn');
+  errEl.style.display = 'none';
+  if (!username || !password) { errEl.textContent='Username dan password wajib diisi.'; errEl.style.display='block'; return; }
+  btn.disabled = true; btn.textContent = 'Memuat...';
+  try {
+    const snap = await getDoc(doc(db, 'talents', username));
+    if (!snap.exists()) throw new Error('Username atau password salah.');
+    const data = snap.data();
+    if (data.password !== password) throw new Error('Username atau password salah.');
+    _docId = username;
+    currentTalent = { id: username, ...data };
+    setSession({ docId: username });
+    loadDashboard();
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'Masuk';
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────
+function loadDashboard() {
+  document.getElementById('t-avatar').textContent   = (currentTalent.name || _docId)[0].toUpperCase();
+  document.getElementById('t-name-top').textContent = currentTalent.name || _docId;
+  if (currentTalent.status === 'draft' || currentTalent.status === 'rejected') {
+    renderSetupPage(); showPage('setup-page'); return;
+  }
+  showPage('dashboard');
+  listenStatus();
+  listenOrders();
+  updateBanner();
+}
+
+function updateBanner() {
+  const b = document.getElementById('status-banner');
+  if (!b) return;
+  if (currentTalent.status === 'pending') {
+    b.innerHTML = `<div style="background:rgba(255,184,0,.08);border:1px solid rgba(255,184,0,.2);border-radius:12px;padding:14px 18px;margin-bottom:20px;font-size:.85rem;font-weight:700;color:var(--yellow)">⏳ Profil kamu sedang dalam review admin. Harap tunggu persetujuan.</div>`;
+  } else if (currentTalent.status === 'rejected') {
+    b.innerHTML = `<div style="background:rgba(255,92,92,.06);border:1px solid rgba(255,92,92,.2);border-radius:12px;padding:14px 18px;margin-bottom:20px">
+      <p style="font-size:.85rem;font-weight:800;color:var(--red);margin-bottom:6px">❌ Perubahan profil ditolak admin</p>
+      ${currentTalent.declineReason?`<p style="font-size:.82rem;color:var(--muted);font-weight:600">Alasan: "${currentTalent.declineReason}"</p>`:''}
+      <button onclick="document.getElementById('tab-settings').click()" style="margin-top:10px;padding:7px 18px;border-radius:99px;background:var(--pink-mid);color:#fff;border:none;font-size:.8rem;font-weight:800;cursor:pointer">Edit & Kirim Ulang</button>
+    </div>`;
+  } else { b.innerHTML = ''; }
+}
+
+// ── SETUP PAGE (first time / rejected) ────────────────────
+window._showSetup = function() { renderSetupPage(); showPage('setup-page'); };
+
+function renderSetupPage() {
+  const t  = currentTalent;
+  const el = document.getElementById('setup-content');
+  if (!el) return;
+  _uploadedAudioUrl = '';
+  _uploadedPhotoUrl = '';
+  el.innerHTML = buildProfileForm(t, false);
+  attachFormHandlers();
+}
+
+// ── SETTING PANEL (di dalam dashboard) ────────────────────
+function renderSettingsPanel() {
+  const t  = currentTalent;
+  const el = document.getElementById('settings-content');
+  if (!el) return;
+  _uploadedAudioUrl = '';
+  _uploadedPhotoUrl = '';
+
+  // Jika ada pending edit, tampilkan info
+  const hasPendingEdit = currentTalent._pendingEdit === true;
+
+  el.innerHTML = `
+    ${hasPendingEdit ? `
+    <div style="background:rgba(255,184,0,.08);border:1px solid rgba(255,184,0,.2);border-radius:12px;padding:14px 18px;margin-bottom:20px;font-size:.84rem;font-weight:700;color:var(--yellow)">
+      ⏳ Ada perubahan profil yang sedang menunggu persetujuan admin.
+    </div>` : ''}
+    ${buildProfileForm(t, true)}
+  `;
+  attachFormHandlers();
+}
+
+function buildProfileForm(t, isSettingMode) {
+  const title   = isSettingMode ? '✏️ Edit Profil' : (t.status==='rejected' ? '✏️ Edit & Kirim Ulang' : '📝 Setup Profil');
+  const btnText = isSettingMode ? '📤 Simpan & Minta Persetujuan' : (t.status==='rejected' ? '📤 Kirim Ulang' : '📤 Submit untuk Review');
+
+  return `
+  <div class="setup-card">
+    <h2 style="font-size:1.2rem;font-weight:900;margin-bottom:20px">${title}</h2>
+    ${!isSettingMode && t.status==='rejected' && t.declineReason ? `<div style="background:rgba(255,92,92,.06);border:1px solid rgba(255,92,92,.2);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.82rem;color:var(--red);font-weight:700">❌ "${t.declineReason}"</div>` : ''}
+
+    <div class="setup-section">
+      <div class="setup-label">📷 Foto Profil *</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div id="photo-preview" style="width:76px;height:76px;border-radius:12px;overflow:hidden;background:var(--surface2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:2rem">
+          ${t.img ? `<img src="${t.img}" style="width:100%;height:100%;object-fit:cover">` : '👤'}
+        </div>
+        <label class="upload-audio-label">
+          <input type="file" id="photo-file" accept="image/*" style="display:none" onchange="previewPhoto(this)">
+          <span id="photo-lbl">📁 Pilih Foto</span>
+        </label>
+      </div>
+      <div id="photo-prog" style="display:none;margin-top:8px">
+        <div style="height:5px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden"><div id="photo-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#E8628A,#F9A8C9);border-radius:99px;transition:width .3s"></div></div>
+        <p id="photo-prog-txt" style="font-size:.73rem;color:var(--muted);margin-top:4px"></p>
+      </div>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-label">📛 Nama Tampil *</div>
+      <input type="text" id="s-name" class="setup-input" value="${t.name||''}" placeholder="Nama kamu">
+    </div>
+    <div class="setup-section">
+      <div class="setup-label">🎂 Umur *</div>
+      <input type="number" id="s-age" class="setup-input" value="${t.age||''}" placeholder="Umur" min="18" max="35">
+    </div>
+    <div class="setup-section">
+      <div class="setup-label">💬 Bio Singkat</div>
+      <textarea id="s-bio" class="setup-input" rows="3" placeholder="Ceritakan tentang dirimu...">${t.bio||''}</textarea>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-label">🎯 Layanan *</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px" id="svc-wrap">
+        ${ALL_SERVICES.map(s=>`
+        <label style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+          <input type="checkbox" value="${s}" class="svc-ck" ${(t.services||[]).includes(s)?'checked':''} style="display:none">
+          <span class="svc-pill ${(t.services||[]).includes(s)?'svc-active':''}">${s}</span>
+        </label>`).join('')}
+      </div>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-label">🎵 Sample Suara *</div>
+      ${t.audio ? `<audio controls style="width:100%;height:32px;margin-bottom:8px" src="${t.audio}"></audio>` : ''}
+      <label class="upload-audio-label">
+        <input type="file" id="audio-file" accept="audio/*" style="display:none" onchange="handleAudio(this)">
+        <span id="audio-lbl">${t.audio ? '🔄 Ganti Audio' : '📁 Pilih Audio (MP3/WAV)'}</span>
+      </label>
+      <div id="audio-prog" style="display:none;margin-top:8px">
+        <div style="height:5px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden"><div id="audio-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#E8628A,#F9A8C9);border-radius:99px;transition:width .3s"></div></div>
+        <p id="audio-prog-txt" style="font-size:.73rem;color:var(--muted);margin-top:4px"></p>
+      </div>
+      <div id="audio-new" style="display:none;margin-top:8px"><audio controls style="width:100%;height:32px" id="audio-new-el"></audio></div>
+    </div>
+
+    <p id="s-err" style="color:var(--red);font-size:.82rem;font-weight:700;display:none;margin-bottom:8px"></p>
+    <button id="s-submit" onclick="submitProfile()" style="width:100%;padding:13px;border-radius:99px;background:var(--pink-mid);color:white;border:none;font-weight:800;font-size:.9rem;cursor:pointer;transition:opacity .2s;box-shadow:0 0 18px var(--pink-glow)">
+      ${btnText}
+    </button>
+    ${isSettingMode ? `<p style="margin-top:12px;font-size:.76rem;color:var(--muted);font-weight:600;text-align:center">⚠️ Perubahan akan ditinjau admin sebelum ditampilkan ke publik.</p>` : ''}
+    ${!isSettingMode && (t.status==='approved'||t.status==='pending') ? `<button onclick="showPage('dashboard')" style="width:100%;margin-top:10px;padding:11px;border-radius:99px;background:transparent;border:1.5px solid var(--border);color:var(--muted);font-weight:800;font-size:.85rem;cursor:pointer">← Kembali</button>` : ''}
+  </div>`;
+}
+
+function attachFormHandlers() {
+  document.querySelectorAll('.svc-ck').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.nextElementSibling.classList.toggle('svc-active', cb.checked);
+    });
+  });
+}
+
+window.previewPhoto = function(input) {
+  const file = input.files[0]; if (!file) return;
+  document.getElementById('photo-lbl').textContent = '⏳ Mengupload...';
+  document.getElementById('photo-prog').style.display = 'block';
+  const bar = document.getElementById('photo-bar');
+  const txt = document.getElementById('photo-prog-txt');
+  // Preview lokal dulu
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('photo-preview').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover">`;
+  };
+  reader.readAsDataURL(file);
+  // Upload ke Cloudinary
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`);
+  xhr.upload.onprogress = e => { if (e.lengthComputable) { const p=Math.round(e.loaded/e.total*100); bar.style.width=p+'%'; txt.textContent=`${p}%`; } };
+  xhr.onload = () => {
+    if (xhr.status === 200) {
+      const res = JSON.parse(xhr.responseText);
+      _uploadedPhotoUrl = res.secure_url;
+      txt.textContent = '✅ Foto berhasil diupload!'; bar.style.background='var(--green)';
+      document.getElementById('photo-lbl').textContent = '✅ ' + file.name;
+      setTimeout(()=>{ document.getElementById('photo-prog').style.display='none'; bar.style.width='0%'; bar.style.background='linear-gradient(90deg,#E8628A,#F9A8C9)'; }, 2500);
+    } else { txt.textContent='❌ Gagal upload foto.'; }
+  };
+  xhr.onerror = ()=>{ txt.textContent='❌ Gagal.'; };
+  xhr.send(fd);
+};
+
+window.handleAudio = function(input) {
+  const file = input.files[0]; if (!file) return;
+  if (file.size > 10*1024*1024) { alert('Maks 10MB!'); return; }
+  document.getElementById('audio-lbl').textContent = '⏳ Mengupload...';
+  document.getElementById('audio-prog').style.display = 'block';
+  const bar = document.getElementById('audio-bar');
+  const txt = document.getElementById('audio-prog-txt');
+  const fd  = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`);
+  xhr.upload.onprogress = e => { if (e.lengthComputable) { const p=Math.round(e.loaded/e.total*100); bar.style.width=p+'%'; txt.textContent=`${p}%`; } };
+  xhr.onload = () => {
+    if (xhr.status===200) {
+      const res = JSON.parse(xhr.responseText);
+      _uploadedAudioUrl = res.secure_url;
+      txt.textContent = '✅ Berhasil!'; bar.style.background='var(--green)';
+      document.getElementById('audio-lbl').textContent = '✅ ' + file.name;
+      const el = document.getElementById('audio-new-el');
+      if (el) { el.src=_uploadedAudioUrl; document.getElementById('audio-new').style.display='block'; }
+      setTimeout(()=>{ document.getElementById('audio-prog').style.display='none'; bar.style.width='0%'; bar.style.background='linear-gradient(90deg,#E8628A,#F9A8C9)'; }, 2500);
+    } else { txt.textContent='❌ Gagal.'; }
+  };
+  xhr.onerror = ()=>{ txt.textContent='❌ Gagal.'; };
+  xhr.send(fd);
+};
+
+// ── SUBMIT PROFIL (pertama kali / dari setup page) ────────
+//     Langsung pending di talents collection
+// ── SUBMIT DARI SETTING (talent sudah approved) ──────────
+//     Simpan ke pending_edits collection → admin review dulu
+window.submitProfile = async function() {
+  const name      = document.getElementById('s-name')?.value.trim();
+  const age       = parseInt(document.getElementById('s-age')?.value);
+  const bio       = document.getElementById('s-bio')?.value.trim();
+  const services  = [...document.querySelectorAll('.svc-ck:checked')].map(c=>c.value);
+  const errEl     = document.getElementById('s-err');
+  const btn       = document.getElementById('s-submit');
+  errEl.style.display = 'none';
+
+  if (!name)                { errEl.textContent='Nama wajib diisi.'; errEl.style.display='block'; return; }
+  if (!age||age<18||age>35) { errEl.textContent='Umur harus 18–35 tahun.'; errEl.style.display='block'; return; }
+  if (!services.length)     { errEl.textContent='Pilih minimal 1 layanan.'; errEl.style.display='block'; return; }
+
+  // Foto: wajib kalau belum ada
+  if (!_uploadedPhotoUrl && !currentTalent.img) {
+    errEl.textContent='Upload foto profil terlebih dahulu.'; errEl.style.display='block'; return;
+  }
+  // Audio: wajib kalau belum ada
+  if (!_uploadedAudioUrl && !currentTalent.audio) {
+    errEl.textContent='Upload sample suara terlebih dahulu.'; errEl.style.display='block'; return;
   }
 
-  container.innerHTML = orders.map(o => {
-    const alreadyBid = (o.bids || []).find(b => b.talentId === currentTalent.id);
-    const bidCount   = (o.bids || []).length;
-    const bidMins    = o.bidType === 'special' ? 6 : 5;
-    const timeLeft   = getTimeLeft(o.createdAt, bidMins);
-    const expired    = timeLeft <= 0;
-    const isSpecial  = o.bidType === 'special';
-    const genderPref = o.genderPref
-      ? `<span style="background:rgba(249,168,201,.1);color:var(--pink);border:1px solid var(--border-pk);padding:2px 10px;border-radius:99px;font-size:.7rem;font-weight:800">${o.genderPref === 'female' ? '🌸 Wanita' : '💙 Pria'}</span>`
-      : '';
+  btn.disabled=true; btn.textContent='Mengirim...';
+  try {
+    const finalImg   = _uploadedPhotoUrl   || currentTalent.img   || '';
+    const finalAudio = _uploadedAudioUrl   || currentTalent.audio || '';
+    const isApproved = currentTalent.status === 'approved';
 
+    if (isApproved) {
+      // ── Talent sudah approved → simpan ke pending_edits, bukan langsung ke talents
+      await setDoc(doc(db, 'pending_edits', _docId), {
+        talentDocId  : _docId,
+        name, age, bio, services,
+        img          : finalImg,
+        audio        : finalAudio,
+        submittedAt  : new Date().toISOString(),
+        status       : 'pending',
+      });
+      // Tandai di talents bahwa ada pending edit
+      await setDoc(doc(db, 'talents', _docId), { _pendingEdit: true }, { merge: true });
+      currentTalent._pendingEdit = true;
+      toast('✅ Perubahan dikirim! Menunggu persetujuan admin.', 'success');
+      _uploadedAudioUrl = '';
+      _uploadedPhotoUrl = '';
+      // Re-render setting untuk tampilkan banner pending
+      renderSettingsPanel();
+    } else {
+      // ── First time / rejected → langsung ke talents dengan status pending
+      await setDoc(doc(db, 'talents', _docId), {
+        name, age, bio, services,
+        img          : finalImg,
+        audio        : finalAudio,
+        status       : 'pending',
+        submittedAt  : new Date().toISOString(),
+        _pendingEdit : false,
+      }, { merge: true });
+      currentTalent = { ...currentTalent, name, age, bio, services, img: finalImg, audio: finalAudio, status: 'pending' };
+      toast('✅ Profil dikirim! Tunggu review admin.');
+      _uploadedAudioUrl = '';
+      _uploadedPhotoUrl = '';
+      showPage('dashboard');
+      updateBanner();
+    }
+  } catch(e) {
+    errEl.textContent='Gagal: '+e.message;
+    errEl.style.display='block';
+  }
+  btn.disabled=false;
+  btn.textContent = currentTalent.status === 'approved'
+    ? '📤 Simpan & Minta Persetujuan'
+    : (currentTalent.status==='rejected' ? '📤 Kirim Ulang' : '📤 Submit untuk Review');
+};
+
+// ── STATUS ────────────────────────────────────────────────
+function listenStatus() {
+  onSnapshot(doc(db, 'talents', _docId), snap => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    currentTalent = { ...currentTalent, ...data };
+    updateStatusUI(data.online !== false);
+    updateBanner();
+    updatePointDisplay(data.points !== undefined ? data.points : 100);
+    // Avatar & nama
+    document.getElementById('t-avatar').textContent   = (data.name || _docId)[0].toUpperCase();
+    document.getElementById('t-name-top').textContent = data.name || _docId;
+  });
+}
+
+function updatePointDisplay(points) {
+  const el = document.getElementById('talent-point-box');
+  if (el) el.innerHTML = `
+    <div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
+      <div style="font-size:2rem">⭐</div>
+      <div>
+        <div style="font-size:.72rem;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Total Point Kamu</div>
+        <div style="font-size:1.6rem;font-weight:900;color:#a78bfa">${points} Point</div>
+      </div>
+    </div>`;
+}
+
+function updateStatusUI(online) {
+  const dot=document.getElementById('status-dot'), text=document.getElementById('status-text'), toggle=document.getElementById('status-toggle');
+  if (!dot||!text||!toggle) return;
+  dot.className    = 'status-dot '+(online?'online':'offline');
+  text.textContent = online ? 'Kamu sedang ONLINE' : 'Kamu sedang OFFLINE';
+  toggle.textContent = online ? 'Set Offline' : 'Set Online';
+  toggle.className   = 'status-toggle'+(online?' active':'');
+}
+
+async function toggleStatus() {
+  if (!_docId) return;
+  const snap = await getDoc(doc(db, 'talents', _docId));
+  const on   = snap.exists() ? snap.data().online !== false : false;
+  await setDoc(doc(db, 'talents', _docId), { online: !on }, { merge: true });
+  toast(on ? '⚫ Kamu OFFLINE' : '🟢 Kamu ONLINE');
+}
+
+// ── ORDERS ────────────────────────────────────────────────
+function listenOrders() {
+  DB.onOrdersChange(orders => {
+    const name = currentTalent.name || _docId;
+    renderMyOrders(orders.filter(o => o.talentName === name));
+  });
+}
+
+function renderMyOrders(orders) {
+  const el = document.getElementById('my-orders-list'); if (!el) return;
+  if (!orders.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>Belum ada orderan</p></div>';
+    return;
+  }
+  el.innerHTML = orders.map(o => {
+    const statusColor = {
+      baru:'var(--blue)', proses:'var(--yellow)', selesai:'var(--green)', batal:'var(--red)'
+    }[o.status] || 'var(--muted)';
     return `
-    <div class="order-card ${isSpecial ? 'order-card-special' : ''}" id="ocard-${o.id}">
-      ${isSpecial ? `
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:6px 12px;background:rgba(249,168,201,.1);border:1px solid rgba(249,168,201,.25);border-radius:8px">
-        <span style="font-size:.85rem">⭐</span>
-        <span style="font-size:.75rem;font-weight:800;color:var(--pink)">BID SPESIAL — Kamu dipilih khusus oleh customer!</span>
-      </div>` : ''}
-      <div class="order-card-head">
+    <div class="order-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px">
         <div>
-          <div class="order-id">#${(o.id||'').slice(-8)}</div>
-          <div class="order-service">${o.service}</div>
-          <div class="order-meta">⏱ ${getDurLabel(o.duration)} &nbsp;·&nbsp; ${bidCount > 0 ? bidCount + ' talent bid' : 'Belum ada yang bid'}</div>
-          <div class="order-meta" style="margin-top:3px">🕐 Masuk: ${formatDate(o.date)}</div>
+          <div style="font-weight:900;font-size:.97rem">${o.service||'-'}</div>
+          <div style="font-size:.78rem;color:var(--muted);font-weight:600;margin-top:2px">${DUR_LABEL[o.duration]||o.duration+' mnt'} · ${o.date ? new Date(o.date).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '-'}</div>
         </div>
-        <div class="order-price">Rp ${(o.price||0).toLocaleString('id-ID')}</div>
-      </div>
-      ${o.customerNote ? `<div class="order-note">📝 "${o.customerNote}"</div>` : ''}
-      <div class="timer-wrap" id="timer-wrap-${o.id}">
-        <div class="timer-bar-track">
-          <div class="timer-bar-fill ${isSpecial ? 'special' : ''} ${timeLeft < 60 ? 'urgent' : ''}" id="tbar-${o.id}" style="width:${getTimerPct(o.createdAt, bidMins)}%"></div>
-        </div>
-        <div class="timer-text ${timeLeft < 60 ? 'urgent' : ''}" id="ttext-${o.id}">
-          ${expired ? 'Waktu habis' : formatTime(timeLeft)}
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:1rem;font-weight:900;color:var(--pink)">Rp ${(o.price||0).toLocaleString('id-ID')}</div>
+          <span style="display:inline-block;margin-top:4px;padding:2px 10px;border-radius:99px;border:1.5px solid ${statusColor};color:${statusColor};font-size:.7rem;font-weight:800;text-transform:uppercase">${o.status}</span>
         </div>
       </div>
-      <button class="bid-btn ${alreadyBid ? 'bidded' : ''} ${isSpecial ? 'bid-btn-special' : ''}" id="bidbtn-${o.id}"
-        onclick="doBid('${o.id}','${o._docId}')"
-        ${(alreadyBid || expired) ? 'disabled' : ''}>
-        ${alreadyBid ? '✅ Sudah Bid' : expired ? 'Waktu Habis' : isSpecial ? '⭐ Terima Bid Spesial' : '🙋 Bid Orderan Ini'}
-      </button>
+      ${o.note ? `<div style="font-size:.8rem;color:var(--muted);background:rgba(255,255,255,.04);border-radius:8px;padding:8px 12px;font-style:italic">${o.note}</div>` : ''}
     </div>`;
   }).join('');
-
-  orders.forEach(o => startTimer(o.id, o._docId, o.createdAt, o.bidType === 'special' ? 6 : 5));
 }
 
-// ── TIMER ──────────────────────────────────────────────────────
-const BID_MINUTES = 5;
-
-function getTimeLeft(createdAt, minutes) {
-  if (!createdAt) return 0;
-  const created  = createdAt.toDate ? createdAt.toDate().getTime() : new Date(createdAt).getTime();
-  const deadline = created + minutes * 60 * 1000;
-  return Math.max(0, Math.floor((deadline - Date.now()) / 1000));
-}
-
-function getTimerPct(createdAt, minutes) {
-  const total = minutes * 60;
-  const left  = getTimeLeft(createdAt, minutes);
-  return Math.round((left / total) * 100);
-}
-
-function formatTime(sec) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${String(s).padStart(2,'0')} tersisa`;
-}
-
-function startTimer(orderId, docId, createdAt, bidMins) {
-  if (timerIntervals[orderId]) clearInterval(timerIntervals[orderId]);
-  const mins = bidMins || BID_MINUTES;
-
-  timerIntervals[orderId] = setInterval(() => {
-    const left    = getTimeLeft(createdAt, mins);
-    const pct     = getTimerPct(createdAt, mins);
-    const urgent  = left < 60;
-    const expired = left <= 0;
-
-    const bar = document.getElementById(`tbar-${orderId}`);
-    const txt = document.getElementById(`ttext-${orderId}`);
-    const btn = document.getElementById(`bidbtn-${orderId}`);
-
-    if (!bar) { clearInterval(timerIntervals[orderId]); return; }
-
-    bar.style.width = pct + '%';
-    bar.className   = 'timer-bar-fill' + (urgent ? ' urgent' : '');
-    txt.textContent = expired ? 'Waktu habis' : formatTime(left);
-    txt.className   = 'timer-text' + (urgent ? ' urgent' : '');
-
-    if (expired && btn && !btn.classList.contains('bidded')) {
-      btn.disabled    = true;
-      btn.textContent = 'Waktu Habis';
-      clearInterval(timerIntervals[orderId]);
-    }
-  }, 1000);
-}
-
-// ── BID ORDER ──────────────────────────────────────────────────
-async function doBid(orderId, docId) {
-  const btn = document.getElementById(`bidbtn-${orderId}`);
-  if (!btn || btn.disabled) return;
-
-  btn.disabled    = true;
-  btn.textContent = 'Memproses...';
-
-  try {
-    const ref  = doc(db, 'orders', docId);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) { toast('Order tidak ditemukan'); return; }
-
-    const data     = snap.data();
-    const timeLeft = getTimeLeft(data.createdAt, BID_MINUTES);
-    if (timeLeft <= 0) { btn.textContent = 'Waktu Habis'; toast('Waktu bid sudah habis'); return; }
-
-    const existing = (data.bids || []).find(b => b.talentId === currentTalent.id);
-    if (existing) { btn.textContent = '✅ Sudah Bid'; btn.classList.add('bidded'); return; }
-
-    await updateDoc(ref, {
-      bids: arrayUnion({
-        talentId  : currentTalent.id,
-        talentName: currentTalent.name,
-        gender    : currentTalent.gender,
-        bidAt     : new Date().toISOString(),
-      }),
-    });
-
-    btn.textContent = '✅ Sudah Bid';
-    btn.classList.add('bidded');
-    toast('✅ Berhasil bid! Tunggu customer memilih.');
-  } catch(e) {
-    console.error(e);
-    btn.disabled    = false;
-    btn.textContent = '🙋 Bid Orderan Ini';
-    toast('Gagal bid, coba lagi');
-  }
-}
-
-// ── RENDER MY ORDERS ───────────────────────────────────────────
-function renderMyOrders(orders) {
-  const container = document.getElementById('my-orders-list');
-  if (!orders.length) {
-    container.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>Belum ada orderan yang kamu ambil</p></div>`;
-    return;
-  }
-  container.innerHTML = orders.map(o => `
-    <div class="assigned-card">
-      <span class="assigned-badge">✅ Orderanmu</span>
-      <div style="font-weight:900;font-size:1rem;margin-bottom:4px">${o.service}</div>
-      <div style="font-size:.82rem;color:var(--muted);font-weight:600;margin-bottom:8px">
-        ⏱ ${getDurLabel(o.duration)} &nbsp;·&nbsp; 📅 ${formatDate(o.date)}
-      </div>
-      <div style="font-size:1rem;font-weight:900;color:var(--pink)">Rp ${(o.price||0).toLocaleString('id-ID')}</div>
-      ${o.customerNote ? `<div class="order-note" style="margin-top:8px">📝 "${o.customerNote}"</div>` : ''}
-      <div style="margin-top:10px">
-        <span class="badge-status badge-${o.status}">${o.status.charAt(0).toUpperCase()+o.status.slice(1)}</span>
-      </div>
-    </div>`).join('');
-}
-
-// ── TABS ───────────────────────────────────────────────────────
+// ── TABS ──────────────────────────────────────────────────
 function switchTab(tab) {
-  activeTab = tab;
-  document.getElementById('incoming-section').style.display = tab === 'incoming' ? 'block' : 'none';
-  document.getElementById('myorders-section').style.display = tab === 'assigned' ? 'block' : 'none';
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(`tab-${tab}`).classList.add('active');
+  document.getElementById('tab-orders').classList.toggle('active', tab==='orders');
+  document.getElementById('tab-settings').classList.toggle('active', tab==='settings');
+  document.getElementById('orders-section').style.display   = tab==='orders'   ? 'block' : 'none';
+  document.getElementById('settings-section').style.display = tab==='settings' ? 'block' : 'none';
+  if (tab === 'settings') renderSettingsPanel();
 }
 
-function updateTabCounts(incoming, assigned) {
-  document.getElementById('tab-incoming').innerHTML =
-    `📥 Order Masuk ${incoming > 0 ? `<span class="badge-count">${incoming}</span>` : ''}`;
-  document.getElementById('tab-assigned').innerHTML =
-    `📋 Orderanku ${assigned > 0 ? `<span class="badge-count">${assigned}</span>` : ''}`;
-}
-
-// ── HELPERS ────────────────────────────────────────────────────
-function getDurLabel(d) {
-  const map = {30:'30 menit',60:'60 menit',90:'90 menit',120:'2 jam',180:'3 jam'};
-  return map[d] || d + ' menit';
-}
-function formatDate(iso) {
-  if (!iso) return '-';
-  const d    = new Date(iso);
-  const date = d.toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'});
-  const h    = String(d.getHours()).padStart(2,'0');
-  const m    = String(d.getMinutes()).padStart(2,'0');
-  return `${date}, ${h}.${m}`;
-}
-
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
-}
-
-// ── BADGE STATUS CSS ───────────────────────────────────────────
-const style = document.createElement('style');
-style.textContent = `
-  .badge-status{display:inline-block;padding:3px 11px;border-radius:99px;font-size:.72rem;font-weight:800}
-  .badge-baru{background:rgba(77,166,232,.12);color:#4DA6E8}
-  .badge-proses{background:rgba(255,184,0,.12);color:#FFB800}
-  .badge-selesai{background:rgba(61,214,140,.12);color:#3DD68C}
-  .badge-batal{background:rgba(255,92,92,.12);color:#FF5C5C}
-  .badge-waiting_bid{background:rgba(249,168,201,.12);color:#F9A8C9}
-`;
-document.head.appendChild(style);
-
-// ── INIT ───────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  const sess = getSession();
-  if (sess) {
-    currentTalent = sess;
-    showDashboard();
+// ── INIT ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  await DB.getSettingsAsync();
+  const session = getSession();
+  if (session?.docId) {
+    try {
+      const snap = await getDoc(doc(db, 'talents', session.docId));
+      if (snap.exists()) {
+        _docId = session.docId;
+        currentTalent = { id: session.docId, ...snap.data() };
+        loadDashboard();
+      } else clearSession();
+    } catch { clearSession(); }
   }
 
   document.getElementById('t-login-btn').onclick = doLogin;
-  ['t-user','t-pass'].forEach(id => {
-    document.getElementById(id).addEventListener('keydown', e => {
-      if (e.key === 'Enter') doLogin();
-    });
-  });
-
-  document.getElementById('t-logout-btn').onclick  = doLogout;
+  document.getElementById('t-user').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+  document.getElementById('t-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+  document.getElementById('t-logout-btn').onclick = () => {
+    clearSession(); currentTalent=null; _docId=null;
+    // Bersihkan form login
+    const userEl = document.getElementById('t-user');
+    const passEl = document.getElementById('t-pass');
+    const errEl  = document.getElementById('t-err');
+    if (userEl) userEl.value = '';
+    if (passEl) passEl.value = '';
+    if (errEl)  { errEl.textContent = ''; errEl.style.display = 'none'; }
+    showPage('login-page');
+  };
   document.getElementById('status-toggle').onclick = toggleStatus;
-  document.getElementById('tab-incoming').onclick  = () => switchTab('incoming');
-  document.getElementById('tab-assigned').onclick  = () => switchTab('assigned');
+
+  document.getElementById('tab-orders').onclick   = () => switchTab('orders');
+  document.getElementById('tab-settings').onclick = () => switchTab('settings');
 });
-
-window.doBid = doBid;
-
-// ============================================================
-//  PUSH NOTIFICATION — FCM Native getToken()
-// ============================================================
-let lastOrderIds    = new Set();
-let notifPermission = false;
-
-async function initNotifications() {
-  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
-
-  const permission = await Notification.requestPermission();
-  notifPermission  = permission === 'granted';
-  if (!notifPermission) { showNotifBanner(false); return; }
-
-  try {
-    // FCM otomatis cari firebase-messaging-sw.js di root domain
-    // tidak perlu register SW manual
-    const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY });
-
-    if (!fcmToken) {
-      console.warn('⚠️ FCM token kosong');
-      showNotifBanner(false);
-      return;
-    }
-
-    await updateDoc(doc(db, 'talents', currentTalent.id), {
-      fcmToken        : fcmToken,
-      notifEnabled    : true,
-      pushSubscription: null,
-    });
-
-    console.log('✅ FCM token saved:', fcmToken.slice(0, 20) + '...');
-    showNotifBanner(true);
-  } catch(e) {
-    console.error('❌ FCM error:', e.message);
-    showNotifBanner(false);
-    toast('❌ Error notif: ' + e.message);
-  }
-}
-
-function showNotifBanner(enabled) {
-  const existing = document.getElementById('notif-banner');
-  if (existing) existing.remove();
-  const banner = document.createElement('div');
-  banner.id = 'notif-banner';
-  banner.style.cssText = `margin:0 0 16px;padding:12px 16px;border-radius:12px;display:flex;align-items:center;gap:10px;background:${enabled?'rgba(61,214,140,.08)':'rgba(255,184,0,.08)'};border:1px solid ${enabled?'rgba(61,214,140,.25)':'rgba(255,184,0,.25)'};font-size:.82rem;font-weight:700;color:${enabled?'var(--green)':'var(--yellow)'};`;
-  banner.innerHTML = enabled
-    ? `<span>🔔</span><span>Notifikasi aktif — kamu akan diberitahu saat ada order masuk</span>`
-    : `<span>🔕</span><span>Notifikasi belum diaktifkan</span>
-       <button onclick="initNotifications()" style="margin-left:auto;padding:4px 12px;border-radius:99px;border:1px solid currentColor;background:transparent;color:inherit;font-size:.75rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">Aktifkan</button>`;
-  const dashContent = document.querySelector('.dash-content');
-  if (dashContent) dashContent.insertBefore(banner, dashContent.firstChild);
-}
-
-function sendPushNotif(title, body, isSpecial) {
-  // In-app toast (muncul saat tab aktif)
-  const notif = document.createElement('div');
-  notif.style.cssText = `position:fixed;top:70px;right:16px;z-index:9999;background:var(--surface2);border:1px solid ${isSpecial?'rgba(249,168,201,.4)':'rgba(77,166,232,.3)'};border-radius:14px;padding:14px 18px;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.5);font-family:'Nunito',sans-serif;animation:toastIn .3s ease both`;
-  notif.innerHTML = `<div style="font-weight:900;font-size:.9rem;color:${isSpecial?'var(--pink)':'var(--blue)'};margin-bottom:4px">${title}</div><div style="font-size:.82rem;color:var(--muted);font-weight:600">${body}</div>`;
-  document.body.appendChild(notif);
-  setTimeout(() => notif.remove(), 6000);
-}
-
-function checkNewOrders(orders) {
-  const incoming = orders.filter(o => {
-    if (o.orderType !== 'quick') return false;
-    if (o.status !== 'waiting_bid') return false;
-    if (o.confirmedTalent) return false;
-    if (o.targetTalents && o.targetTalents.length > 0) {
-      const myName = (currentTalent.name||'').toLowerCase();
-      return o.targetTalents.some(t => (t.name||'').toLowerCase() === myName);
-    }
-    const bidMins = o.bidType === 'special' ? 6 : 5;
-    const created = o.createdAt?.toDate ? o.createdAt.toDate().getTime() : new Date(o.date).getTime();
-    return (created + bidMins*60*1000) - Date.now() > 0;
-  });
-
-  incoming.forEach(o => {
-    if (!lastOrderIds.has(o.id)) {
-      lastOrderIds.add(o.id);
-      const isSpecial = o.bidType === 'special';
-      const title = isSpecial ? '⭐ Bid Spesial Untukmu!' : '🔔 Order Masuk!';
-      const body  = `${o.service} · ${o.duration} menit · Rp ${(o.price||0).toLocaleString('id-ID')}`;
-      sendPushNotif(title, body, isSpecial);
-    }
-  });
-}
-
-window.initNotifications = initNotifications;

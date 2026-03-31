@@ -22,7 +22,10 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
       <a href="index.html"      class="nav-item"><span class="nav-icon">📊</span>Dashboard</a>
       <a href="orders.html"     class="nav-item"><span class="nav-icon">📦</span>Order</a>
       <a href="unassigned.html" class="nav-item"><span class="nav-icon">🎯</span>Assign Talent</a>
+      <a href="status.html"     class="nav-item"><span class="nav-icon">🟢</span>Status Talent</a>
       <a href="talents.html"    class="nav-item active"><span class="nav-icon">👥</span>Talent</a>
+      <a href="create-talent.html" class="nav-item"><span class="nav-icon">➕</span>Buat Akun Talent</a>
+      <a href="review.html"        class="nav-item"><span class="nav-icon">📋</span>Review Talent</a>
       <a href="settings.html"   class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
       <a href="../index.html"   class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
     </nav>
@@ -35,17 +38,217 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
 </div>
 <script type="module">
 import { DB, TALENTS, DUR_LABEL } from './data.js';
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
+import { getFirestore, doc, setDoc, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+
+const FIREBASE_CONFIG = {
+  apiKey:'AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU',
+  authDomain:'callpay-28a28.firebaseapp.com',
+  projectId:'callpay-28a28',
+  storageBucket:'callpay-28a28.firebasestorage.app',
+  messagingSenderId:'44722427776',
+  appId:'1:44722427776:web:29d1a297746cd83d685365'
+};
+const _fbApp = getApps().length ? getApps()[0] : initializeApp(FIREBASE_CONFIG);
+const _db = getFirestore(_fbApp);
 
 document.getElementById('logout-btn').onclick=()=>{DB.setLogin(false);window.location.href='index.html';};
 document.getElementById('back-web').onclick=()=>{if(confirm('Logout dari admin?')){DB.setLogin(false);window.location.href='../index.html';}return false;};
+
+const CLOUDINARY_CLOUD = 'dnbjw43hp';
+const CLOUDINARY_PRESET = 'callpay_audio';
+
+let _talent = null;
+let _selectedFile = null;
+
+async function loadAudioStatus(talent) {
+  const snap = await getDoc(doc(_db, 'talents', String(talent.id)));
+  const audioUrl = snap.exists() ? snap.data().audio || '' : '';
+  const statusEl = document.getElementById('audio-status');
+  const deleteBtn = document.getElementById('delete-btn');
+  if (audioUrl) {
+    statusEl.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(61,214,140,.06);border:1px solid rgba(61,214,140,.2);border-radius:10px;padding:12px 16px">
+        <span style="font-size:1.2rem">🎵</span>
+        <div style="flex:1;min-width:0">
+          <p style="font-size:.8rem;font-weight:700;color:var(--green);margin-bottom:4px">Audio tersedia</p>
+          <audio controls style="width:100%;height:32px" src="${audioUrl}"></audio>
+        </div>
+      </div>`;
+    deleteBtn.style.display = 'inline-flex';
+  } else {
+    statusEl.innerHTML = `<p style="font-size:.82rem;color:var(--muted);font-weight:600">⚠️ Belum ada sample suara untuk talent ini.</p>`;
+    deleteBtn.style.display = 'none';
+  }
+}
+
+window.handleAudioChange = function(input) {
+  _selectedFile = input.files[0] || null;
+  const btn = document.getElementById('upload-btn');
+  const label = document.getElementById('upload-label');
+  if (_selectedFile) {
+    label.querySelector('span').textContent = '✅ ' + _selectedFile.name;
+    btn.style.display = 'inline-flex';
+  } else {
+    label.querySelector('span').textContent = '📁 Pilih File Audio (MP3/WAV)';
+    btn.style.display = 'none';
+  }
+};
+
+window.uploadAudio = async function() {
+  if (!_selectedFile || !_talent) return;
+  const maxMB = 10;
+  if (_selectedFile.size > maxMB * 1024 * 1024) {
+    alert('File terlalu besar! Maksimal ' + maxMB + 'MB.'); return;
+  }
+  const progressWrap = document.getElementById('upload-progress');
+  const progressBar  = document.getElementById('progress-bar');
+  const progressText = document.getElementById('progress-text');
+  const uploadBtn    = document.getElementById('upload-btn');
+  progressWrap.style.display = 'block';
+  uploadBtn.disabled = true;
+  uploadBtn.textContent = 'Mengupload...';
+
+  const formData = new FormData();
+  formData.append('file', _selectedFile);
+  formData.append('upload_preset', CLOUDINARY_PRESET);
+  formData.append('resource_type', 'video'); // Cloudinary pakai 'video' untuk audio
+
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`);
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable) {
+        const pct = Math.round(e.loaded / e.total * 100);
+        progressBar.style.width = pct + '%';
+        progressText.textContent = `Mengupload... ${pct}%`;
+      }
+    };
+    xhr.onload = async () => {
+      if (xhr.status === 200) {
+        const res = JSON.parse(xhr.responseText);
+        const url = res.secure_url;
+        await setDoc(doc(_db, 'talents', String(_talent.id)), { audio: url }, { merge: true });
+        progressText.textContent = '✅ Upload berhasil!';
+        progressBar.style.background = 'var(--green)';
+        uploadBtn.disabled = false;
+        uploadBtn.style.display = 'none';
+        document.getElementById('audio-file').value = '';
+        document.getElementById('upload-label').querySelector('span').textContent = '📁 Pilih File Audio (MP3/WAV)';
+        _selectedFile = null;
+        setTimeout(() => {
+          progressWrap.style.display = 'none';
+          progressBar.style.width = '0%';
+          progressBar.style.background = 'linear-gradient(90deg,#E8628A,#F9A8C9)';
+        }, 2500);
+        await loadAudioStatus(_talent);
+      } else {
+        throw new Error('Status ' + xhr.status);
+      }
+    };
+    xhr.onerror = () => { throw new Error('Network error'); };
+    xhr.send(formData);
+  } catch(err) {
+    alert('Upload gagal: ' + err.message);
+    progressWrap.style.display = 'none';
+    uploadBtn.disabled = false;
+    uploadBtn.textContent = 'Upload Audio';
+  }
+};
+
+window.deleteAudio = async function() {
+  if (!_talent || !confirm('Hapus audio ' + _talent.name + '?')) return;
+  await setDoc(doc(_db, 'talents', String(_talent.id)), { audio: '' }, { merge: true });
+  await loadAudioStatus(_talent);
+};
+
+// ── POINT MANAGEMENT ──────────────────────────────────────
+let _currentPoints = 100;
+
+async function loadPoints(talent) {
+  try {
+    const snap = await getDoc(doc(_db, 'talents', String(talent.id)));
+    const data = snap.exists() ? snap.data() : {};
+    _currentPoints = data.points !== undefined ? data.points : 100;
+    // Jika belum ada field points, inisialisasi 100
+    if (data.points === undefined) {
+      await setDoc(doc(_db, 'talents', String(talent.id)), { points: 100 }, { merge: true });
+    }
+  } catch(e) {
+    _currentPoints = 100;
+  }
+  renderPointPanel();
+}
+
+function renderPointPanel() {
+  const el = document.getElementById('point-panel');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:18px">
+      <div>
+        <div style="font-size:.75rem;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">⭐ TOTAL POINT</div>
+        <div style="font-size:2.2rem;font-weight:900;color:#a78bfa" id="point-display">${_currentPoints}</div>
+        <div style="font-size:.78rem;color:var(--muted);font-weight:600">Point aktif talent ini</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button onclick="adjustPoint(-10)" style="padding:8px 14px;border-radius:10px;background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.3);color:#ff5c5c;font-weight:800;font-size:.85rem;cursor:pointer">−10</button>
+        <button onclick="adjustPoint(-1)"  style="padding:8px 12px;border-radius:10px;background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.3);color:#ff5c5c;font-weight:800;font-size:.85rem;cursor:pointer">−1</button>
+        <button onclick="adjustPoint(1)"   style="padding:8px 12px;border-radius:10px;background:rgba(61,214,140,.08);border:1px solid rgba(61,214,140,.25);color:var(--green);font-weight:800;font-size:.85rem;cursor:pointer">+1</button>
+        <button onclick="adjustPoint(10)"  style="padding:8px 14px;border-radius:10px;background:rgba(61,214,140,.08);border:1px solid rgba(61,214,140,.25);color:var(--green);font-weight:800;font-size:.85rem;cursor:pointer">+10</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input type="number" id="point-input" min="0" placeholder="Set angka point manual..." style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text,#fff);font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:700;padding:9px 14px;outline:none;min-width:0">
+      <button onclick="setPointManual()" style="padding:9px 18px;border-radius:10px;background:linear-gradient(135deg,#a78bfa,#7c3aed);border:none;color:#fff;font-weight:800;font-size:.85rem;cursor:pointer;white-space:nowrap">Set Point</button>
+    </div>
+    <p id="point-feedback" style="font-size:.78rem;margin-top:6px;height:18px;font-weight:700"></p>`;
+}
+
+window.adjustPoint = async function(delta) {
+  const newVal = Math.max(0, _currentPoints + delta);
+  await savePoints(newVal);
+};
+
+window.setPointManual = async function() {
+  const inp = document.getElementById('point-input');
+  const val = parseInt(inp.value);
+  if (isNaN(val) || val < 0) {
+    showPointFeedback('❌ Masukkan angka yang valid (min 0)', '#ff5c5c'); return;
+  }
+  await savePoints(val);
+  inp.value = '';
+};
+
+async function savePoints(val) {
+  _currentPoints = val;
+  document.getElementById('point-display').textContent = val;
+  try {
+    await setDoc(doc(_db, 'talents', String(_talent.id)), { points: val }, { merge: true });
+    showPointFeedback('✅ Point berhasil diperbarui!', 'var(--green)');
+  } catch(e) {
+    showPointFeedback('❌ Gagal menyimpan point', '#ff5c5c');
+  }
+}
+
+function showPointFeedback(msg, color) {
+  const el = document.getElementById('point-feedback');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = color;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.textContent = ''; }, 3000);
+}
 
 document.addEventListener('DOMContentLoaded',async()=>{
   if(!DB.isLoggedIn()){window.location.href='index.html';return;}
   await DB.getSettingsAsync();
 
-  const id=parseInt(new URLSearchParams(window.location.search).get('id'));
-  const talent=TALENTS.find(t=>t.id===id);
+  const idRaw = new URLSearchParams(window.location.search).get('id');
+  const id    = isNaN(idRaw) ? idRaw : parseInt(idRaw);
+  const talent = TALENTS.find(t => String(t.id) === String(id)) ||
+                 (typeof id === 'string' ? { id, name: id, age: '-', gender: 'female', img: '', services: [], audio: '' } : null);
   if(!talent){document.getElementById('content').innerHTML='<p style="color:var(--muted)">Talent tidak ditemukan.</p>';return;}
+  _talent = talent;
 
   document.title=`${talent.name} — CallPay Admin`;
 
@@ -84,6 +287,30 @@ document.addEventListener('DOMContentLoaded',async()=>{
         <div style="font-size:1.8rem;font-weight:900;color:var(--green)">${DB.formatRp(net)}</div>
       </div>
 
+      <div class="panel" style="margin-bottom:20px">
+        <h3>⭐ Manajemen Point</h3>
+        <div id="point-panel"></div>
+      </div>
+
+      <div class="panel" style="margin-bottom:20px" id="audio-panel">
+        <h3>🎵 Sample Suara</h3>
+        <div id="audio-status" style="margin-bottom:14px"></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <label class="upload-audio-label" id="upload-label">
+            <input type="file" id="audio-file" accept="audio/mp3,audio/mpeg,audio/wav,audio/ogg" style="display:none" onchange="handleAudioChange(this)">
+            <span>📁 Pilih File Audio (MP3/WAV)</span>
+          </label>
+          <button class="btn btn-pink" id="upload-btn" onclick="uploadAudio()" style="display:none">Upload Audio</button>
+          <button class="btn btn-outline" id="delete-btn" onclick="deleteAudio()" style="display:none;color:#ff5c5c;border-color:#ff5c5c">🗑 Hapus Audio</button>
+        </div>
+        <div id="upload-progress" style="display:none;margin-top:12px">
+          <div style="height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden">
+            <div id="progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#E8628A,#F9A8C9);border-radius:99px;transition:width .3s"></div>
+          </div>
+          <p id="progress-text" style="font-size:.75rem;color:var(--muted);margin-top:6px">Mengupload...</p>
+        </div>
+      </div>
+
       ${Object.keys(svcMap).length?`
       <div class="panel" style="margin-bottom:20px">
         <h3>📊 Breakdown per Layanan</h3>
@@ -113,6 +340,8 @@ document.addEventListener('DOMContentLoaded',async()=>{
       </div>`;
   });
 
+  await loadAudioStatus(talent);
+  await loadPoints(talent);
   document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{if(window.innerWidth<=768)closeSidebar();}));
 });
 </script>

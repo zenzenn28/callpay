@@ -52,6 +52,11 @@
   <!-- Content -->
   <div class="dash-content">
 
+    <div id="status-banner"></div>
+
+    <!-- Point Box -->
+    <div id="talent-point-box"></div>
+
     <!-- Status bar -->
     <div class="status-bar">
       <div class="status-dot online" id="status-dot"></div>
@@ -61,24 +66,32 @@
 
     <!-- Tabs -->
     <div class="tabs">
-      <button class="tab-btn active" id="tab-incoming">📥 Order Masuk</button>
-      <button class="tab-btn" id="tab-assigned">📋 Orderanku</button>
+      <button class="tab-btn active" id="tab-orders">📋 Orderanku</button>
+      <button class="tab-btn" id="tab-settings">⚙️ Setting</button>
     </div>
 
-    <!-- Incoming orders -->
-    <div id="incoming-section">
-      <div id="incoming-list">
-        <div class="empty"><div class="empty-icon">⏳</div><p>Memuat order...</p></div>
-      </div>
-    </div>
-
-    <!-- My assigned orders -->
-    <div id="myorders-section" style="display:none">
+    <!-- Orderanku -->
+    <div id="orders-section">
       <div id="my-orders-list">
-        <div class="empty"><div class="empty-icon">📋</div><p>Memuat orderan...</p></div>
+        <div class="empty"><div class="empty-icon">⏳</div><p>Memuat orderan...</p></div>
       </div>
     </div>
 
+    <!-- Setting Profil -->
+    <div id="settings-section" style="display:none">
+      <div id="settings-content"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ SETUP PAGE (first time / rejected) ══════════════════ -->
+<div id="setup-page" style="display:none;min-height:100vh;background:var(--bg);padding:20px">
+  <div style="max-width:520px;margin:0 auto;padding-top:20px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+      <div style="font-family:'Pacifico',cursive;font-size:1.2rem;color:var(--pink)">CallPay</div>
+    </div>
+    <div id="setup-content"></div>
   </div>
 </div>
 

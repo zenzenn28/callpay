@@ -8,73 +8,84 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s}
+    .modal-backdrop.open{opacity:1;pointer-events:all}
+    .modal-box{background:#1A1A2E;border:1px solid var(--border-pink);border-radius:var(--radius-lg);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:24px;transform:translateY(20px);transition:transform .25s}
+    .modal-backdrop.open .modal-box{transform:translateY(0)}
+    .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+    .modal-head h3{font-size:1.1rem;font-weight:900}
+    .modal-close-btn{background:rgba(255,255,255,.08);border:none;color:var(--text);width:32px;height:32px;border-radius:99px;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:background .2s}
+    .modal-close-btn:hover{background:rgba(255,255,255,.16)}
+    .modal-talent-strip{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:20px}
+    .modal-talent-strip img{width:56px;height:56px;border-radius:10px;object-fit:cover;flex-shrink:0}
+    .mts-name{font-size:1rem;font-weight:900}
+    .mts-meta{font-size:.78rem;color:var(--text-muted);font-weight:600}
+    .form-field{margin-bottom:14px}
+    .form-field label{display:block;font-size:.77rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+    .form-field select,.form-field input,.form-field textarea{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:600;padding:10px 14px;outline:none;transition:border-color .2s}
+    .form-field select:focus,.form-field input:focus,.form-field textarea:focus{border-color:var(--pink)}
+    .form-field select option{background:#1A1A2E}
+    .price-summary{display:flex;align-items:center;justify-content:space-between;background:rgba(249,168,201,.07);border:1px solid rgba(249,168,201,.2);border-radius:12px;padding:14px 16px;margin:16px 0}
+    .price-summary span{font-size:.82rem;font-weight:700;color:var(--text-muted)}
+    .price-summary strong{font-size:1.1rem;font-weight:900;color:var(--pink)}
+    .wa-confirm-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#25D366;color:#fff;border:none;padding:13px;border-radius:12px;font-size:.95rem;font-weight:800;margin-top:14px;transition:opacity .2s,transform .2s;box-shadow:0 4px 18px rgba(37,211,102,.3)}
+    .wa-confirm-btn:hover{opacity:.9;transform:translateY(-1px)}
+    .wa-confirm-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+    @media(max-width:600px){.modal-box{padding:18px}}
+  </style>
 </head>
 <body>
 
-<!-- ══ NAVBAR ══════════════════════════════════════════════ -->
+<!-- NAVBAR -->
 <nav class="navbar">
   <div class="nav-logo" title="Klik 5x untuk akses admin">
     <img src="assets/logo.png" alt="CallPay" onerror="this.style.display='none'">
     <span class="nav-logo-text">CallPay</span>
   </div>
-  <ul class="nav-links">
-    <li><a href="#layanan">Layanan</a></li>
-    <li><a href="#talent">Talent</a></li>
-    <li><a href="#testimoni">Testimoni</a></li>
-    <li><a href="cek-order.html" style="color:var(--pink)">🔍 Cek Order</a></li>
+  <ul class="nav-links" id="nav-links">
+    <li><a href="#layanan" onclick="closeMobileNav()">Layanan</a></li>
+    <li><a href="#talent" onclick="closeMobileNav()">Talent</a></li>
+    <li><a href="#testimoni" onclick="closeMobileNav()">Testimoni</a></li>
+    <li class="nav-mobile-cta"><a href="#talent" onclick="closeMobileNav()">Pesan Sekarang</a></li>
   </ul>
-  <button class="nav-cta" onclick="openQuickOrder()">Pesan Sekarang</button>
+  <div style="display:flex;align-items:center;gap:12px">
+    <a href="#talent" class="nav-cta">Pesan Sekarang</a>
+    <button class="nav-hamburger" id="nav-hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
 </nav>
 
-<!-- ══ HERO ════════════════════════════════════════════════ -->
+<!-- HERO -->
 <section class="hero" id="home">
   <div class="hero-grid"></div>
   <div class="hero-inner">
     <div class="hero-eyebrow">⭐ Terpercaya Sejak 2021</div>
-    <h1>
-      Teman Setia Kamu,<br>
-      <span class="ap">Kapan</span> &amp; <span class="ab">Di Mana Saja</span>
-    </h1>
-    <p>
-      Butuh teman ngobrol, curhat, sleepcall, atau pacar virtual?
-      Talent kami siap menemani harimu dengan penuh kehangatan 💕
-    </p>
+    <h1>Teman Setia Kamu,<br><span class="ap">Kapan</span> &amp; <span class="ab">Di Mana Saja</span></h1>
+    <p>Butuh teman ngobrol, curhat, sleepcall, atau pacar virtual? Talent kami siap menemani harimu dengan penuh kehangatan 💕</p>
     <div class="hero-btns">
       <a href="#talent" class="btn-solid">Pilih Talent</a>
       <a href="#layanan" class="btn-outline">Lihat Layanan</a>
     </div>
     <div class="hero-stats">
-      <div class="hero-stat">
-        <div class="hero-stat-num">15+</div>
-        <div class="hero-stat-label">Talent Aktif</div>
-      </div>
-      <div class="hero-stat">
-        <div class="hero-stat-num">1000+</div>
-        <div class="hero-stat-label">Pelanggan Puas</div>
-      </div>
-      <div class="hero-stat">
-        <div class="hero-stat-num">4</div>
-        <div class="hero-stat-label">Jenis Layanan</div>
-      </div>
-      <div class="hero-stat">
-        <div class="hero-stat-num">24/7</div>
-        <div class="hero-stat-label">Siap Menemani</div>
-      </div>
+      <div class="hero-stat"><div class="hero-stat-num">8</div><div class="hero-stat-label">Talent Aktif</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">1000+</div><div class="hero-stat-label">Pelanggan Puas</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">4</div><div class="hero-stat-label">Jenis Layanan</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">24/7</div><div class="hero-stat-label">Siap Menemani</div></div>
     </div>
   </div>
 </section>
 
-<!-- ══ LAYANAN ══════════════════════════════════════════════ -->
-<div class="sec-services" id="layanan">
-<div class="section">
+<!-- LAYANAN -->
+<div class="sec-services" id="layanan"><div class="section">
   <span class="section-label blue">Layanan Kami</span>
   <h2 class="section-title">4 Layanan Pilihan</h2>
   <p class="section-sub">Pilih sesuai kebutuhan kamu hari ini</p>
-
   <div class="services-grid">
     <div class="service-card bl">
-      <div class="service-icon bl">📞</div>
-      <div class="service-name">Temen Call</div>
+      <div class="service-icon bl">📞</div><div class="service-name">Temen Call</div>
       <p class="service-desc">Teman ngobrol santai, cerita-cerita, sharing, dan diskusi asik kapanpun kamu mau.</p>
       <ul class="price-rows">
         <li class="price-row"><span>30 menit</span><span class="price-badge bl">Rp 10.000</span></li>
@@ -84,10 +95,8 @@
         <li class="price-row"><span>3 jam</span><span class="price-badge bl">Rp 50.000</span></li>
       </ul>
     </div>
-
     <div class="service-card pk">
-      <div class="service-icon pk">🌙</div>
-      <div class="service-name">Sleepcall</div>
+      <div class="service-icon pk">🌙</div><div class="service-name">Sleepcall</div>
       <p class="service-desc">Nemenin kamu ngobrol pakai nada lembut sampai kamu tertidur dengan tenang.</p>
       <ul class="price-rows">
         <li class="price-row"><span>30 menit</span><span class="price-badge pk">Rp 13.000</span></li>
@@ -97,10 +106,8 @@
         <li class="price-row"><span>3 jam</span><span class="price-badge pk">Rp 55.000</span></li>
       </ul>
     </div>
-
     <div class="service-card pk">
-      <div class="service-icon pk">🫂</div>
-      <div class="service-name">Temen Curhat</div>
+      <div class="service-icon pk">🫂</div><div class="service-name">Temen Curhat</div>
       <p class="service-desc">Teman curhat cerita masalah kamu dengan nyaman — emosional, overthinking, insecure, dan lainnya.</p>
       <ul class="price-rows">
         <li class="price-row"><span>30 menit</span><span class="price-badge pk">Rp 15.000</span></li>
@@ -109,10 +116,8 @@
         <li class="price-row"><span>2 jam</span><span class="price-badge pk">Rp 50.000</span></li>
       </ul>
     </div>
-
     <div class="service-card bl">
-      <div class="service-icon bl">💕</div>
-      <div class="service-name">Pacar Virtual</div>
+      <div class="service-icon bl">💕</div><div class="service-name">Pacar Virtual</div>
       <p class="service-desc">Nemenin kamu ngobrol pakai nada lembut, panggil sayang, dan manja-manjaan layaknya pacar.</p>
       <ul class="price-rows">
         <li class="price-row"><span>30 menit</span><span class="price-badge bl">Rp 20.000</span></li>
@@ -122,148 +127,75 @@
       </ul>
     </div>
   </div>
-</div>
-</div>
+</div></div>
 
-<!-- ══ TALENT ═══════════════════════════════════════════════ -->
-<div class="sec-talent" id="talent">
-<div class="section">
+<!-- TALENT -->
+<div class="sec-talent" id="talent"><div class="section">
   <span class="section-label pink">Talent Kami</span>
   <h2 class="section-title">Pilih Talent Favoritmu</h2>
-  <p class="section-sub">Lebih dari 15 talent pria &amp; wanita siap menemani kamu</p>
-
-  <div class="talent-controls">
-    <div class="talent-filters">
-      <button class="filter-btn fa" onclick="setFilter('all',this)">Semua</button>
-      <button class="filter-btn" onclick="setFilter('female',this)">🌸 Wanita</button>
-      <button class="filter-btn" onclick="setFilter('male',this)">💙 Pria</button>
-    </div>
+  <p class="section-sub">8 talent pria &amp; wanita siap menemani kamu</p>
+  <div class="gender-filter-wrap">
+    <button class="gf-btn fa" onclick="setFilter('all',this)">Semua</button>
+    <button class="gf-btn" onclick="setFilter('female',this)">🌸 Wanita</button>
+    <button class="gf-btn" onclick="setFilter('male',this)">💙 Pria</button>
   </div>
-
   <div class="talent-grid" id="talent-grid"></div>
-
   <div class="see-more-wrap" id="see-more-wrap">
-    <button class="see-more-btn" id="see-more-btn" onclick="toggleSeeMore()">
-      Lihat Talent Lainnya <span class="arr">▼</span>
-    </button>
+    <button class="see-more-btn" id="see-more-btn" onclick="toggleSeeMore()">Lihat Talent Lainnya <span class="arr">▼</span></button>
   </div>
-</div>
-</div>
+</div></div>
 
-<!-- ══ TESTIMONI ════════════════════════════════════════════ -->
-<div class="sec-testi" id="testimoni">
-<div class="section">
+<!-- TESTIMONI -->
+<div class="sec-testi" id="testimoni"><div class="section">
   <span class="section-label pink">Testimoni</span>
   <h2 class="section-title">Kata Mereka 💬</h2>
   <p class="section-sub">Ribuan pelanggan sudah merasakan kehangatan CallPay</p>
-
   <div class="testi-grid">
-    <div class="testi-card">
-      <div class="testi-qmark">"</div>
-      <div class="testi-stars">★★★★★</div>
-      <p class="testi-text">Sleepcallnya beneran bikin tenang banget! Suaranya lembut, sabar dengerin ceritaku sampai ketiduran. Recommended banget!</p>
-      <div class="testi-user">
-        <div class="testi-avatar pk">A</div>
-        <div><div class="testi-uname">Aysha R.</div><div class="testi-date">Februari 2025</div></div>
-      </div>
-    </div>
-    <div class="testi-card">
-      <div class="testi-qmark">"</div>
-      <div class="testi-stars">★★★★★</div>
-      <p class="testi-text">Lagi overthinking parah, terus nyoba temen curhat di CallPay. Beneran berasa lebih lega! Talent-nya asik dan ga judgmental sama sekali.</p>
-      <div class="testi-user">
-        <div class="testi-avatar bl">D</div>
-        <div><div class="testi-uname">Dito S.</div><div class="testi-date">Januari 2025</div></div>
-      </div>
-    </div>
-    <div class="testi-card">
-      <div class="testi-qmark">"</div>
-      <div class="testi-stars">★★★★★</div>
-      <p class="testi-text">Virtual GF experience-nya top banget! Ngerasa di-sayang, di-perhatiin. Harganya juga terjangkau. Udah langganan dari 2022!</p>
-      <div class="testi-user">
-        <div class="testi-avatar bl">R</div>
-        <div><div class="testi-uname">Raka P.</div><div class="testi-date">Maret 2025</div></div>
-      </div>
-    </div>
-    <div class="testi-card">
-      <div class="testi-qmark">"</div>
-      <div class="testi-stars">★★★★★</div>
-      <p class="testi-text">Ordernya gampang, respon cepet, talent-nya ramah semua. CallPay emang beda dari yang lain. Trusted banget!</p>
-      <div class="testi-user">
-        <div class="testi-avatar pk">N</div>
-        <div><div class="testi-uname">Nadia F.</div><div class="testi-date">Maret 2025</div></div>
-      </div>
-    </div>
-    <div class="testi-card">
-      <div class="testi-qmark">"</div>
-      <div class="testi-stars">★★★★★</div>
-      <p class="testi-text">Pas gabut malem-malem, ngobrol sama temen call di sini seru banget! Bisa sharing banyak hal, ga pernah boring.</p>
-      <div class="testi-user">
-        <div class="testi-avatar bl">F</div>
-        <div><div class="testi-uname">Fariz M.</div><div class="testi-date">Februari 2025</div></div>
-      </div>
-    </div>
-    <div class="testi-card">
-      <div class="testi-qmark">"</div>
-      <div class="testi-stars">★★★★★</div>
-      <p class="testi-text">Kagum sama profesionalisme CallPay. Talent ditraining dengan baik, aman, nyaman, dan harga sangat worth it. 10/10!</p>
-      <div class="testi-user">
-        <div class="testi-avatar pk">S</div>
-        <div><div class="testi-uname">Salsa K.</div><div class="testi-date">April 2025</div></div>
-      </div>
-    </div>
+    <div class="testi-card"><div class="testi-qmark">"</div><div class="testi-stars">★★★★★</div><p class="testi-text">Sleepcallnya beneran bikin tenang banget! Suaranya lembut, sabar dengerin ceritaku sampai ketiduran. Recommended banget!</p><div class="testi-user"><div class="testi-avatar pk">A</div><div><div class="testi-uname">Aysha R.</div><div class="testi-date">Februari 2025</div></div></div></div>
+    <div class="testi-card"><div class="testi-qmark">"</div><div class="testi-stars">★★★★★</div><p class="testi-text">Lagi overthinking parah, terus nyoba temen curhat di CallPay. Beneran berasa lebih lega! Talent-nya asik dan ga judgmental sama sekali.</p><div class="testi-user"><div class="testi-avatar bl">D</div><div><div class="testi-uname">Dito S.</div><div class="testi-date">Januari 2025</div></div></div></div>
+    <div class="testi-card"><div class="testi-qmark">"</div><div class="testi-stars">★★★★★</div><p class="testi-text">Virtual GF experience-nya top banget! Ngerasa di-sayang, di-perhatiin. Harganya juga terjangkau. Udah langganan dari 2022!</p><div class="testi-user"><div class="testi-avatar bl">R</div><div><div class="testi-uname">Raka P.</div><div class="testi-date">Maret 2025</div></div></div></div>
+    <div class="testi-card"><div class="testi-qmark">"</div><div class="testi-stars">★★★★★</div><p class="testi-text">Ordernya gampang, respon cepet, talent-nya ramah semua. CallPay emang beda dari yang lain. Trusted banget!</p><div class="testi-user"><div class="testi-avatar pk">N</div><div><div class="testi-uname">Nadia F.</div><div class="testi-date">Maret 2025</div></div></div></div>
+    <div class="testi-card"><div class="testi-qmark">"</div><div class="testi-stars">★★★★★</div><p class="testi-text">Pas gabut malem-malem, ngobrol sama temen call di sini seru banget! Bisa sharing banyak hal, ga pernah boring.</p><div class="testi-user"><div class="testi-avatar bl">F</div><div><div class="testi-uname">Fariz M.</div><div class="testi-date">Februari 2025</div></div></div></div>
+    <div class="testi-card"><div class="testi-qmark">"</div><div class="testi-stars">★★★★★</div><p class="testi-text">Kagum sama profesionalisme CallPay. Talent ditraining dengan baik, aman, nyaman, dan harga sangat worth it. 10/10!</p><div class="testi-user"><div class="testi-avatar pk">S</div><div><div class="testi-uname">Salsa K.</div><div class="testi-date">April 2025</div></div></div></div>
   </div>
-</div>
-</div>
+</div></div>
 
-<!-- ══ FOOTER ════════════════════════════════════════════════ -->
+<!-- FOOTER -->
 <footer class="footer">
   <div class="footer-top">
     <div class="footer-brand">
       <div class="footer-logo">CallPay</div>
       <p class="footer-tagline">Teman setia kamu sejak 2021. Selalu ada kapanpun kamu membutuhkan 💕</p>
     </div>
-    <nav class="footer-nav">
-      <h4>Menu</h4>
-      <ul>
-        <li><a href="#home">Home</a></li>
-        <li><a href="#layanan">Layanan</a></li>
-        <li><a href="#talent">Talent</a></li>
-        <li><a href="#testimoni">Testimoni</a></li>
-      </ul>
-    </nav>
-    <div class="footer-contact">
-      <h4>Kontak</h4>
-      <p>📱 WhatsApp: <a href="https://wa.me/62895400709371">+62 895-400-709371</a></p>
-      <p>📸 Instagram: @callpay.id</p>
-      <p>🕐 Online: 24 Jam / 7 Hari</p>
-    </div>
+    <nav class="footer-nav"><h4>Menu</h4><ul><li><a href="#home">Home</a></li><li><a href="#layanan">Layanan</a></li><li><a href="#talent">Talent</a></li><li><a href="#testimoni">Testimoni</a></li><li><a href="admin/index.html">Login Admin</a></li></ul></nav>
+    <div class="footer-contact"><h4>Kontak</h4><p>📱 WhatsApp: <a href="https://wa.me/62895400709371">+62 895-400-709371</a></p><p>📸 Instagram: @callpay.id</p><p>🕐 Online: 24 Jam / 7 Hari</p></div>
   </div>
   <hr class="footer-hr">
-  <div class="footer-copy">© 2021–2025 CallPay Agency. All rights reserved.</div>
+  <div class="footer-copy">© 2021–2030 CallPay Agency. All rights reserved.</div>
 </footer>
 
 <!-- WA Float -->
 <a href="https://wa.me/62895400709371" class="wa-float" target="_blank" title="Chat WhatsApp">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="28" height="28" fill="white">
-    <path d="M24 4C13 4 4 13 4 24c0 3.6 1 7 2.7 9.9L4 44l10.4-2.7C17.2 43 20.5 44 24 44c11 0 20-9 20-20S35 4 24 4zm0 36c-3.1 0-6.1-.8-8.7-2.4l-.6-.4-6.2 1.6 1.7-6-.4-.6C8.8 30.1 8 27.1 8 24 8 15.2 15.2 8 24 8s16 7.2 16 16-7.2 16-16 16zm8.7-11.8c-.5-.2-2.8-1.4-3.2-1.5-.4-.2-.7-.2-1 .2-.3.4-1.2 1.5-1.4 1.8-.3.3-.5.4-1 .1-.5-.2-2-.7-3.8-2.3-1.4-1.2-2.3-2.8-2.6-3.2-.3-.5 0-.7.2-1 .2-.2.5-.5.7-.8.2-.3.3-.5.4-.8.1-.3 0-.6-.1-.8-.1-.2-1-2.5-1.4-3.4-.4-.9-.8-.8-1-.8h-.9c-.3 0-.8.1-1.2.6-.4.5-1.6 1.6-1.6 3.8s1.7 4.4 1.9 4.7c.2.3 3.3 5.1 8.1 7.1 1.1.5 2 .8 2.7 1 1.1.3 2.2.3 3 .2.9-.1 2.8-1.1 3.2-2.2.4-1.1.4-2 .3-2.2-.2-.3-.5-.4-1-.6z"/>
-  </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="28" height="28" fill="white"><path d="M24 4C13 4 4 13 4 24c0 3.6 1 7 2.7 9.9L4 44l10.4-2.7C17.2 43 20.5 44 24 44c11 0 20-9 20-20S35 4 24 4zm0 36c-3.1 0-6.1-.8-8.7-2.4l-.6-.4-6.2 1.6 1.7-6-.4-.6C8.8 30.1 8 27.1 8 24 8 15.2 15.2 8 24 8s16 7.2 16 16-7.2 16-16 16zm8.7-11.8c-.5-.2-2.8-1.4-3.2-1.5-.4-.2-.7-.2-1 .2-.3.4-1.2 1.5-1.4 1.8-.3.3-.5.4-1 .1-.5-.2-2-.7-3.8-2.3-1.4-1.2-2.3-2.8-2.6-3.2-.3-.5 0-.7.2-1 .2-.2.5-.5.7-.8.2-.3.3-.5.4-.8.1-.3 0-.6-.1-.8-.1-.2-1-2.5-1.4-3.4-.4-.9-.8-.8-1-.8h-.9c-.3 0-.8.1-1.2.6-.4.5-1.6 1.6-1.6 3.8s1.7 4.4 1.9 4.7c.2.3 3.3 5.1 8.1 7.1 1.1.5 2 .8 2.7 1 1.1.3 2.2.3 3 .2.9-.1 2.8-1.1 3.2-2.2.4-1.1.4-2 .3-2.2-.2-.3-.5-.4-1-.6z"/></svg>
 </a>
 
-
-
-<!-- ══ QUICK ORDER MODAL ══════════════════════════════════ -->
-<div class="modal-backdrop" id="quick-modal">
-  <div class="modal-box" style="max-width:520px">
+<!-- ORDER MODAL -->
+<div class="modal-backdrop" id="order-modal">
+  <div class="modal-box">
     <div class="modal-head">
       <h3>Pesan Layanan</h3>
-      <button class="modal-close-btn" onclick="closeQuickOrder()">✕</button>
+      <button class="modal-close-btn" onclick="closeModal()">✕</button>
     </div>
-
-    <!-- Layanan -->
+    <div class="modal-talent-strip">
+      <img id="modal-img" src="" alt="">
+      <div>
+        <div class="mts-name" id="modal-tname"></div>
+        <div class="mts-meta" id="modal-tmeta"></div>
+      </div>
+    </div>
     <div class="form-field">
       <label>Layanan *</label>
-      <select id="qo-service" onchange="updateQODurations(); updateQOPrice()">
+      <select id="modal-service" onchange="updateDurations();updateModalPrice()">
         <option value="">— Pilih Layanan —</option>
         <option value="temen-call">📞 Temen Call</option>
         <option value="sleepcall">🌙 Sleepcall</option>
@@ -271,163 +203,45 @@
         <option value="pacar-virtual">💕 Pacar Virtual</option>
       </select>
     </div>
-
-    <!-- Durasi -->
     <div class="form-field">
       <label>Durasi *</label>
-      <select id="qo-duration" onchange="updateQOPrice()">
+      <select id="modal-duration" onchange="updateModalPrice()">
         <option value="">— Pilih Layanan Dulu —</option>
       </select>
     </div>
-
-    <!-- No WA -->
-    <div class="form-field">
-      <label>No. WhatsApp *</label>
-      <input type="text" id="qo-wa" placeholder="08xxxxxxxxxx">
-    </div>
-
-    <!-- Catatan -->
     <div class="form-field">
       <label>Catatan (opsional)</label>
-      <textarea id="qo-note" rows="2" placeholder="Ceritakan apa yang kamu inginkan..."></textarea>
+      <textarea id="modal-note" rows="2" placeholder="Ceritakan apa yang kamu inginkan..."></textarea>
     </div>
-
-    <!-- Harga -->
     <div class="price-summary">
       <span>Total Harga</span>
-      <strong id="qo-price">Pilih layanan &amp; durasi</strong>
+      <strong id="modal-price">Pilih layanan &amp; durasi</strong>
     </div>
-
-    <!-- Pilih Talent -->
-    <div style="margin-top:16px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="font-size:.73rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">👥 Pilih Talent</div>
-        <button onclick="selectAllTalents()" id="btn-all-talent" style="padding:5px 14px;border-radius:99px;border:1.5px solid var(--border-pink);background:transparent;color:var(--pink);font-family:'Nunito',sans-serif;font-size:.78rem;font-weight:800;cursor:pointer;transition:all .2s">
-          Semua Talent
-        </button>
-      </div>
-      <div style="font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:12px">
-        Pilih 1 atau lebih talent — atau klik <strong style="color:var(--pink)">Semua Talent</strong>
-      </div>
-
-      <!-- Wanita -->
-      <div style="margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span style="font-size:.7rem;font-weight:800;color:var(--pink);text-transform:uppercase;letter-spacing:.06em">🌸 Wanita</span>
-          <div style="flex:1;height:1px;background:rgba(249,168,201,.2)"></div>
-          <button onclick="selectGender('female')" style="padding:3px 10px;border-radius:99px;border:1px solid rgba(249,168,201,.3);background:transparent;color:var(--pink);font-size:.7rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">Pilih Semua</button>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:7px">
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="1" data-name="Nadia" data-gender="female" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-female">🌸 Nadia</span>
-          </label>
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="2" data-name="Bella" data-gender="female" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-female">🌸 Bella</span>
-          </label>
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="3" data-name="Citra" data-gender="female" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-female">🌸 Citra</span>
-          </label>
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="4" data-name="Salsa" data-gender="female" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-female">🌸 Salsa</span>
-          </label>
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="5" data-name="Putri" data-gender="female" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-female">🌸 Putri</span>
-          </label>
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="6" data-name="Rara" data-gender="female" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-female">🌸 Rara</span>
-          </label>
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="7" data-name="Dea" data-gender="female" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-female">🌸 Dea</span>
-          </label>
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="8" data-name="Vika" data-gender="female" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-female">🌸 Vika</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- Pria -->
-      <div style="margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span style="font-size:.7rem;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.06em">💙 Pria</span>
-          <div style="flex:1;height:1px;background:rgba(77,166,232,.2)"></div>
-          <button onclick="selectGender('male')" style="padding:3px 10px;border-radius:99px;border:1px solid rgba(77,166,232,.3);background:transparent;color:var(--blue);font-size:.7rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">Pilih Semua</button>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:7px">
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="9" data-name="Rizky" data-gender="male" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-male">💙 Rizky</span>
-          </label>
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="10" data-name="Dimas" data-gender="male" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-male">💙 Dimas</span>
-          </label>
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="11" data-name="Aldi" data-gender="male" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-male">💙 Aldi</span>
-          </label>
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="12" data-name="Fariz" data-gender="male" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-male">💙 Fariz</span>
-          </label>
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="13" data-name="Kevin" data-gender="male" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-male">💙 Kevin</span>
-          </label>
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="14" data-name="Aryo" data-gender="male" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-male">💙 Aryo</span>
-          </label>
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="15" data-name="Bram" data-gender="male" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-male">💙 Bram</span>
-          </label>
-          <label class="talent-pick-item">
-            <input type="checkbox" class="talent-pick-cb" value="16" data-name="Hendra" data-gender="male" onchange="onTalentPickChange()">
-            <span class="talent-pick-pill tp-male">💙 Hendra</span>
-          </label>
-        </div>
-      </div>
-
-      <div id="talent-pick-info" style="margin-top:8px;font-size:.78rem;font-weight:700;color:var(--muted)">
-        0 talent dipilih
-      </div>
-    </div>
-
-    <!-- Ketentuan -->
-    <div style="margin-top:14px">
-      <div style="font-size:.73rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">📋 Ketentuan Layanan</div>
-      <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;max-height:120px;overflow-y:auto;font-size:.81rem;font-weight:600;color:var(--text-muted);line-height:1.75">
-        <div style="display:flex;gap:8px;margin-bottom:7px"><span style="color:var(--pink);flex-shrink:0">①</span><span>Dilarang membahas topik <strong style="color:var(--text)">sensitif, SARA, dan berbau seksual</strong>.</span></div>
-        <div style="display:flex;gap:8px;margin-bottom:7px"><span style="color:var(--pink);flex-shrink:0">②</span><span>Dilarang <strong style="color:var(--text)">pembayaran di luar agensi</strong>. Semua transaksi wajib melalui CallPay.</span></div>
-        <div style="display:flex;gap:8px;margin-bottom:7px"><span style="color:var(--pink);flex-shrink:0">③</span><span>Dilarang <strong style="color:var(--text)">meminta kontak pribadi</strong> talent.</span></div>
-        <div style="display:flex;gap:8px;margin-bottom:7px"><span style="color:var(--pink);flex-shrink:0">④</span><span>Dilarang <strong style="color:var(--text)">melecehkan atau bersikap tidak sopan</strong> kepada talent.</span></div>
-        <div style="display:flex;gap:8px;margin-bottom:7px"><span style="color:var(--pink);flex-shrink:0">⑤</span><span>Layanan <strong style="color:var(--text)">tidak dapat di-refund</strong> apabila sesi sudah dimulai.</span></div>
-        <div style="display:flex;gap:8px"><span style="color:var(--pink);flex-shrink:0">⑥</span><span>Pelanggaran mengakibatkan <strong style="color:var(--text)">pemblokiran permanen</strong>.</span></div>
-      </div>
-      <label style="display:flex;align-items:center;gap:10px;margin-top:10px;cursor:pointer">
-        <input type="checkbox" id="qo-agree" onchange="toggleQOConfirm()" style="width:17px;height:17px;accent-color:var(--pink);cursor:pointer;flex-shrink:0">
-        <span style="font-size:.82rem;font-weight:700;color:var(--text)">Saya sudah membaca dan menyetujui peraturan</span>
-      </label>
-    </div>
-
-    <button class="submit-order-btn" id="qo-confirm-btn" onclick="submitQuickOrder()" disabled style="opacity:.4;cursor:not-allowed;margin-top:14px">
-      Konfirmasi Pesanan →
+    <button class="wa-confirm-btn" id="modal-wa-btn" onclick="confirmViaWA()" disabled>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20" fill="white"><path d="M24 4C13 4 4 13 4 24c0 3.6 1 7 2.7 9.9L4 44l10.4-2.7C17.2 43 20.5 44 24 44c11 0 20-9 20-20S35 4 24 4zm0 36c-3.1 0-6.1-.8-8.7-2.4l-.6-.4-6.2 1.6 1.7-6-.4-.6C8.8 30.1 8 27.1 8 24 8 15.2 15.2 8 24 8s16 7.2 16 16-7.2 16-16 16zm8.7-11.8c-.5-.2-2.8-1.4-3.2-1.5-.4-.2-.7-.2-1 .2-.3.4-1.2 1.5-1.4 1.8-.3.3-.5.4-1 .1-.5-.2-2-.7-3.8-2.3-1.4-1.2-2.3-2.8-2.6-3.2-.3-.5 0-.7.2-1 .2-.2.5-.5.7-.8.2-.3.3-.5.4-.8.1-.3 0-.6-.1-.8-.1-.2-1-2.5-1.4-3.4-.4-.9-.8-.8-1-.8h-.9c-.3 0-.8.1-1.2.6-.4.5-1.6 1.6-1.6 3.8s1.7 4.4 1.9 4.7c.2.3 3.3 5.1 8.1 7.1 1.1.5 2 .8 2.7 1 1.1.3 2.2.3 3 .2.9-.1 2.8-1.1 3.2-2.2.4-1.1.4-2 .3-2.2-.2-.3-.5-.4-1-.6z"/></svg>
+      Konfirmasi via WhatsApp
     </button>
   </div>
 </div>
 
-
-
-
-
 <script type="module" src="script.js"></script>
+<script>
+function toggleMobileNav() {
+  const links = document.getElementById('nav-links');
+  const btn   = document.getElementById('nav-hamburger');
+  const open  = links.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+function closeMobileNav() {
+  document.getElementById('nav-links').classList.remove('open');
+  document.getElementById('nav-hamburger').classList.remove('open');
+}
+// Tutup nav kalau klik di luar
+document.addEventListener('click', function(e) {
+  const nav   = document.getElementById('nav-links');
+  const btn   = document.getElementById('nav-hamburger');
+  if (!nav.contains(e.target) && !btn.contains(e.target)) closeMobileNav();
+});
+</script>
 </body>
 </html>

@@ -235,3 +235,13 @@ button{cursor:pointer;font-family:'Nunito',sans-serif}
   box-shadow: 0 0 20px rgba(232,98,138,.4) !important;
 }
 .bid-btn-special:hover { opacity:.88; }
+/* ── SETUP PAGE ──────────────────────────── */
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:24px}
+.setup-section{margin-bottom:18px}
+.setup-label{font-size:.73rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.setup-input{width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'Nunito',sans-serif;font-size:.88rem;font-weight:600;outline:none;transition:border-color .2s;resize:vertical}
+.setup-input:focus{border-color:var(--pink-mid)}
+.svc-pill{padding:6px 14px;border-radius:99px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:.8rem;font-weight:700;transition:all .2s;display:inline-block}
+.svc-active{background:rgba(249,168,201,.12);border-color:var(--pink-mid);color:var(--pink)}
+.upload-audio-label{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:10px;border:1.5px dashed rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:var(--muted);font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s}
+.upload-audio-label:hover{border-color:var(--pink);color:var(--text)}
