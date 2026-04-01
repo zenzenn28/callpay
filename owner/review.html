@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Review Talent — CallPay Owner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+  <style>
+    .review-tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+    .review-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:20px 24px;margin-bottom:14px;transition:border-color .2s}
+    .review-card.pending{border-color:rgba(255,184,0,.25)}
+    .review-card.edit-pending{border-color:rgba(77,166,232,.3);background:rgba(77,166,232,.02)}
+    .rc-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+    .rc-photo{width:72px;height:72px;border-radius:12px;object-fit:cover;object-position:top;flex-shrink:0;background:var(--surface2)}
+    .rc-photo-placeholder{width:72px;height:72px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0}
+    .rc-info{flex:1}
+    .rc-name{font-weight:900;font-size:1.05rem;margin-bottom:3px}
+    .rc-meta{font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:6px}
+    .rc-services{display:flex;flex-wrap:wrap;gap:5px}
+    .rc-svc{font-size:.68rem;font-weight:700;padding:2px 9px;border-radius:99px;background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border)}
+    .rc-audio{margin:14px 0;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:10px 14px}
+    .rc-audio p{font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:6px}
+    .rc-actions{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-top:16px}
+    .btn-acc{background:rgba(61,214,140,.12);color:var(--green);border:1px solid rgba(61,214,140,.3);padding:9px 20px;border-radius:99px;font-size:.82rem;font-weight:800;cursor:pointer;transition:all .2s}
+    .btn-acc:hover{background:rgba(61,214,140,.22)}
+    .btn-dec{background:rgba(255,92,92,.1);color:var(--red);border:1px solid rgba(255,92,92,.25);padding:9px 20px;border-radius:99px;font-size:.82rem;font-weight:800;cursor:pointer;transition:all .2s}
+    .btn-dec:hover{background:rgba(255,92,92,.2)}
+    .decline-box{width:100%;margin-top:10px;display:none;flex-direction:column;gap:8px}
+    .decline-box textarea{width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'Nunito',sans-serif;font-size:.85rem;font-weight:600;outline:none;resize:vertical;min-height:80px;transition:border-color .2s}
+    .decline-box textarea:focus{border-color:var(--red)}
+    .decline-box textarea::placeholder{color:var(--muted)}
+    .btn-send-dec{background:var(--red);color:#fff;border:none;padding:8px 18px;border-radius:99px;font-size:.8rem;font-weight:800;cursor:pointer;transition:opacity .2s}
+    .btn-send-dec:hover{opacity:.85}
+    .badge-status{padding:3px 12px;border-radius:99px;font-size:.72rem;font-weight:800}
+    .bs-pending{background:rgba(255,184,0,.12);color:var(--yellow);border:1px solid rgba(255,184,0,.25)}
+    .bs-edit{background:rgba(77,166,232,.12);color:#4DA6E8;border:1px solid rgba(77,166,232,.3)}
+    .bs-approved{background:rgba(61,214,140,.12);color:var(--green);border:1px solid rgba(61,214,140,.25)}
+    .bs-rejected{background:rgba(255,92,92,.1);color:var(--red);border:1px solid rgba(255,92,92,.2)}
+    .decline-reason{background:rgba(255,92,92,.06);border:1px solid rgba(255,92,92,.2);border-radius:8px;padding:10px 14px;font-size:.8rem;color:var(--red);font-weight:600;margin-top:10px}
+    /* Diff view */
+    .diff-wrap{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+    .diff-box{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+    .diff-box.proposed{border-color:rgba(77,166,232,.3);background:rgba(77,166,232,.03)}
+    .diff-label{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px}
+    .diff-label.proposed{color:#4DA6E8}
+    .diff-row{font-size:.82rem;font-weight:600;margin-bottom:4px;color:var(--text)}
+    /* Type label */
+    .type-label{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:2px 10px;border-radius:99px;margin-right:4px}
+    .type-new{background:rgba(255,184,0,.12);color:var(--yellow);border:1px solid rgba(255,184,0,.25)}
+    .type-edit{background:rgba(77,166,232,.12);color:#4DA6E8;border:1px solid rgba(77,166,232,.3)}
+    @media(max-width:560px){.diff-wrap{grid-template-columns:1fr}}
+  </style>
+<script>
+function toggleSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;const open=sb.classList.toggle('open');ov.classList.toggle('open',open);btn.textContent=open?'✕':'☰';}
+function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;sb.classList.remove('open');ov.classList.remove('open');btn.textContent='☰';}
+</script>
+</head>
+<body>
+<div class="app">
+  <div class="mobile-topbar"><span class="mobile-logo">CallPay</span><button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button></div>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar">
+        <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">Owner Panel</div></div>
+        <nav class="sidebar-nav">
+      <a href="create-talent.html" class="nav-item "><span class="nav-icon">➕</span>Buat Akun Talent</a>
+      <a href="review.html"        class="nav-item active"><span class="nav-icon">📋</span>Review Talent</a>
+      <a href="settings.html"      class="nav-item "><span class="nav-icon">⚙️</span>Pengaturan</a>
+      <a href="../index.html"      class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
+    </nav>
+    <div class="sidebar-footer"><button class="logout-btn" id="logout-btn">Logout →</button></div>
+  </aside>
+  <main class="main">
+    <div class="page-header">
+      <h1>Review Talent 📋</h1>
+      <p>Tinjau profil talent yang menunggu persetujuan</p>
+    </div>
+
+    <!-- Tab sama persis seperti sebelumnya, tidak ada tab baru -->
+    <div class="review-tabs">
+      <button class="btn btn-pink filt" onclick="setFilt('pending',this)">
+        ⏳ Pending
+        <span id="badge-pending" style="background:rgba(255,255,255,.2);padding:1px 8px;border-radius:99px;font-size:.72rem;margin-left:4px">0</span>
+      </button>
+      <button class="btn btn-outline filt" onclick="setFilt('approved',this)">✅ Disetujui</button>
+      <button class="btn btn-outline filt" onclick="setFilt('rejected',this)">❌ Ditolak</button>
+      <button class="btn btn-outline filt" onclick="setFilt('all',this)">Semua</button>
+    </div>
+
+    <div id="review-list"><p style="color:var(--muted)">Memuat data...</p></div>
+  </main>
+</div>
+
+<script type="module">
+import { DB, requireOwner } from '../admin/data.js';
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
+import { getFirestore, collection, onSnapshot, doc, updateDoc, setDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+
+const FIREBASE_CONFIG = {
+  apiKey:'AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU',
+  authDomain:'callpay-28a28.firebaseapp.com',
+  projectId:'callpay-28a28',
+  storageBucket:'callpay-28a28.firebasestorage.app',
+  messagingSenderId:'44722427776',
+  appId:'1:44722427776:web:29d1a297746cd83d685365'
+};
+const _app = getApps().length ? getApps()[0] : initializeApp(FIREBASE_CONFIG);
+const _db  = getFirestore(_app);
+
+let _allTalents   = [];
+let _pendingEdits = {}; // docId → edit data
+let _filt = 'pending';
+
+document.getElementById('logout-btn').onclick = () => { sessionStorage.removeItem('cp_owner'); window.location.href = 'index.html'; };
+document.getElementById('back-web').onclick   = () => { if(confirm('Logout dari admin?')){ sessionStorage.removeItem('cp_owner'); window.location.href='../index.html'; } return false; };
+
+window.setFilt = (v, el) => {
+  _filt = v;
+  document.querySelectorAll('.filt').forEach(b => b.className = 'btn btn-outline filt');
+  el.className = 'btn btn-pink filt';
+  render();
+};
+
+// ── Approve talent BARU (pending → approved) ──────────────
+window.approveTalent = async (docId) => {
+  if (!confirm(`Setujui talent "${docId}"?`)) return;
+  await updateDoc(doc(_db, 'talents', docId), {
+    status: 'approved', active: true, online: false,
+    approvedAt: new Date().toISOString(), declineReason: '',
+  });
+  alert(`✅ Talent "${docId}" berhasil disetujui!`);
+};
+
+window.showDeclineBox = (id) => {
+  const box = document.getElementById('decline-box-' + id);
+  if (box) box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
+};
+
+window.sendDecline = async (docId) => {
+  const reason = document.getElementById('decline-reason-' + docId)?.value.trim();
+  if (!reason) { alert('Tulis alasan penolakan.'); return; }
+  await updateDoc(doc(_db, 'talents', docId), {
+    status: 'rejected', active: false,
+    declineReason: reason, rejectedAt: new Date().toISOString(),
+  });
+  alert(`Talent "${docId}" ditolak.`);
+};
+
+window.resetToPending = async (docId) => {
+  if (!confirm(`Reset status "${docId}" ke pending?`)) return;
+  await updateDoc(doc(_db, 'talents', docId), { status: 'pending' });
+};
+
+// ── Approve EDIT PROFIL (pending_edits → terapkan ke talents) ─
+window.approveEdit = async (docId) => {
+  if (!confirm(`Terapkan perubahan profil dari "${docId}"?`)) return;
+  const edit = _pendingEdits[docId];
+  if (!edit) { alert('Data tidak ditemukan.'); return; }
+  await updateDoc(doc(_db, 'talents', docId), {
+    name: edit.name, age: edit.age, bio: edit.bio,
+    services: edit.services, img: edit.img, audio: edit.audio,
+    _pendingEdit: false, lastEditAt: new Date().toISOString(),
+  });
+  await deleteDoc(doc(_db, 'pending_edits', docId));
+  alert(`✅ Perubahan profil "${docId}" berhasil diterapkan!`);
+};
+
+window.rejectEdit = async (docId) => {
+  const reason = prompt(`Alasan penolakan perubahan profil "${docId}":`);
+  if (reason === null) return;
+  await deleteDoc(doc(_db, 'pending_edits', docId));
+  await updateDoc(doc(_db, 'talents', docId), {
+    _pendingEdit: false,
+    editDeclineReason: reason || 'Tidak disebutkan',
+    editRejectedAt: new Date().toISOString(),
+  });
+  alert(`Perubahan profil "${docId}" ditolak.`);
+};
+
+// ── RENDER ────────────────────────────────────────────────
+function render() {
+  // Hitung total pending: talent baru pending + pending edits
+  const talentPendingCount = _allTalents.filter(t => t.status === 'pending').length;
+  const editPendingCount   = Object.keys(_pendingEdits).length;
+  document.getElementById('badge-pending').textContent = talentPendingCount + editPendingCount;
+
+  let html = '';
+
+  if (_filt === 'pending' || _filt === 'all') {
+    // 1. Tampilkan pending edits (dari talent yang sudah approved)
+    Object.entries(_pendingEdits).forEach(([docId, edit]) => {
+      const talent = _allTalents.find(t => t.id === docId) || {};
+      html += renderEditCard(docId, talent, edit);
+    });
+    // 2. Tampilkan talent baru pending
+    _allTalents.filter(t => t.status === 'pending').forEach(t => {
+      html += renderTalentCard(t);
+    });
+  }
+
+  if (_filt === 'approved') {
+    _allTalents.filter(t => t.status === 'approved').forEach(t => { html += renderTalentCard(t); });
+  }
+  if (_filt === 'rejected') {
+    _allTalents.filter(t => t.status === 'rejected').forEach(t => { html += renderTalentCard(t); });
+  }
+  if (_filt === 'all') {
+    // sudah ditangani pending di atas, tambah approved & rejected
+    _allTalents.filter(t => t.status === 'approved' || t.status === 'rejected').forEach(t => {
+      html += renderTalentCard(t);
+    });
+  }
+
+  document.getElementById('review-list').innerHTML = html ||
+    `<div class="empty"><div class="empty-icon">📭</div><p>Tidak ada talent dengan status ini.</p></div>`;
+}
+
+function renderEditCard(docId, t, e) {
+  const changed = [];
+  if (t.name  !== e.name)  changed.push('Nama');
+  if (t.age   !== e.age)   changed.push('Umur');
+  if (t.bio   !== e.bio)   changed.push('Bio');
+  if (t.img   !== e.img)   changed.push('Foto');
+  if (t.audio !== e.audio) changed.push('Audio');
+  if (JSON.stringify((t.services||[]).sort()) !== JSON.stringify((e.services||[]).sort())) changed.push('Layanan');
+
+  return `
+  <div class="review-card edit-pending">
+    <div class="rc-head">
+      ${t.img ? `<img class="rc-photo" src="${t.img}" alt="${t.name}">` : `<div class="rc-photo-placeholder">👤</div>`}
+      <div class="rc-info">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+          <span class="type-label type-edit">✏️ Edit Profil</span>
+          <span class="rc-name">${t.name||docId}</span>
+          <span class="badge-status bs-edit">Menunggu Review</span>
+        </div>
+        <div class="rc-meta">${t.gender==='female'?'🌸 Wanita':'💙 Pria'} · ${t.age||'-'} thn</div>
+        ${changed.length ? `<div style="font-size:.72rem;color:#4DA6E8;font-weight:700">Perubahan: ${changed.join(', ')}</div>` : ''}
+      </div>
+    </div>
+
+    <div class="diff-wrap">
+      <div class="diff-box">
+        <div class="diff-label">📌 Data Saat Ini</div>
+        ${t.img ? `<img src="${t.img}" style="width:56px;height:56px;border-radius:8px;object-fit:cover;margin-bottom:8px;display:block">` : ''}
+        <div class="diff-row"><b>Nama:</b> ${t.name||'-'}</div>
+        <div class="diff-row"><b>Umur:</b> ${t.age||'-'} thn</div>
+        <div class="diff-row"><b>Bio:</b> ${t.bio||'—'}</div>
+        <div class="diff-row"><b>Layanan:</b> ${(t.services||[]).join(', ')||'—'}</div>
+        ${t.audio ? `<div style="margin-top:8px"><p style="font-size:.7rem;font-weight:700;color:var(--muted);margin-bottom:4px">🎵 Audio saat ini</p><audio controls style="width:100%;height:28px" src="${t.audio}"></audio></div>` : ''}
+      </div>
+      <div class="diff-box proposed">
+        <div class="diff-label proposed">🆕 Perubahan Baru</div>
+        ${e.img ? `<img src="${e.img}" style="width:56px;height:56px;border-radius:8px;object-fit:cover;margin-bottom:8px;display:block${e.img!==t.img?';border:2px solid #4DA6E8':''}">` : ''}
+        <div class="diff-row" ${e.name!==t.name?'style="color:#4DA6E8;font-weight:800"':''}><b>Nama:</b> ${e.name||'-'}</div>
+        <div class="diff-row" ${e.age!==t.age?'style="color:#4DA6E8;font-weight:800"':''}><b>Umur:</b> ${e.age||'-'} thn</div>
+        <div class="diff-row" ${e.bio!==t.bio?'style="color:#4DA6E8;font-weight:800"':''}><b>Bio:</b> ${e.bio||'—'}</div>
+        <div class="diff-row" ${JSON.stringify((t.services||[]).sort())!==JSON.stringify((e.services||[]).sort())?'style="color:#4DA6E8;font-weight:800"':''}><b>Layanan:</b> ${(e.services||[]).join(', ')||'—'}</div>
+        ${e.audio && e.audio!==t.audio ? `<div style="margin-top:8px"><p style="font-size:.7rem;font-weight:700;color:#4DA6E8;margin-bottom:4px">🎵 Audio baru</p><audio controls style="width:100%;height:28px" src="${e.audio}"></audio></div>` : ''}
+      </div>
+    </div>
+
+    <div class="rc-actions">
+      <button class="btn-acc" onclick="approveEdit('${docId}')">✅ Terapkan Perubahan</button>
+      <button class="btn-dec" onclick="rejectEdit('${docId}')">❌ Tolak</button>
+    </div>
+  </div>`;
+}
+
+function renderTalentCard(t) {
+  const badgeClass = t.status==='approved' ? 'bs-approved' : t.status==='rejected' ? 'bs-rejected' : 'bs-pending';
+  const badgeLabel = t.status==='approved' ? '✅ Disetujui' : t.status==='rejected' ? '❌ Ditolak' : '⏳ Pending';
+  const isPending  = t.status === 'pending';
+
+  return `
+  <div class="review-card ${isPending?'pending':''}">
+    <div class="rc-head">
+      ${t.img ? `<img class="rc-photo" src="${t.img}" alt="${t.name}">` : `<div class="rc-photo-placeholder">👤</div>`}
+      <div class="rc-info">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+          <span class="type-label type-new">🆕 Profil Baru</span>
+          <span class="rc-name">${t.name||t.id}</span>
+          <span class="badge-status ${badgeClass}">${badgeLabel}</span>
+        </div>
+        <div class="rc-meta">${t.gender==='female'?'🌸 Wanita':'💙 Pria'} · ${t.age||'-'} thn</div>
+        <div class="rc-services">${(t.services||[]).map(s=>`<span class="rc-svc">${s}</span>`).join('')||'<span style="font-size:.75rem;color:var(--muted)">Belum ada layanan</span>'}</div>
+      </div>
+    </div>
+    ${t.bio?`<div style="font-size:.82rem;color:var(--muted);font-weight:600;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:4px">"${t.bio}"</div>`:''}
+    ${t.audio
+      ? `<div class="rc-audio"><p>🎵 Sample Suara</p><audio controls style="width:100%;height:32px" src="${t.audio}"></audio></div>`
+      : `<div class="rc-audio"><p style="color:var(--red)">⚠️ Belum upload sample suara</p></div>`}
+    ${t.declineReason?`<div class="decline-reason">💬 Alasan: "${t.declineReason}"</div>`:''}
+    ${isPending ? `
+    <div class="rc-actions">
+      <button class="btn-acc" onclick="approveTalent('${t.id}')">✅ Setujui</button>
+      <button class="btn-dec" onclick="showDeclineBox('${t.id}')">❌ Tolak</button>
+    </div>
+    <div class="decline-box" id="decline-box-${t.id}">
+      <textarea id="decline-reason-${t.id}" placeholder="Tulis alasan penolakan..."></textarea>
+      <button class="btn-send-dec" onclick="sendDecline('${t.id}')">Kirim Penolakan</button>
+    </div>` : `
+    <div class="rc-actions" style="margin-top:12px">
+      <button class="btn btn-outline btn-sm" onclick="resetToPending('${t.id}')">🔄 Reset ke Pending</button>
+    </div>`}
+  </div>`;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if(sessionStorage.getItem('cp_owner')!=='1'){window.location.href='index.html';return;}
+
+  // Listen talents
+  onSnapshot(collection(_db, 'talents'), snap => {
+    _allTalents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    _allTalents.sort((a,b) => {
+      const order = { pending:0, rejected:1, approved:2, draft:3 };
+      return (order[a.status]??3) - (order[b.status]??3);
+    });
+    render();
+  });
+
+  // Listen pending_edits — masuk ke tab Pending juga
+  onSnapshot(collection(_db, 'pending_edits'), snap => {
+    _pendingEdits = {};
+    snap.forEach(d => { if (d.data().status === 'pending') _pendingEdits[d.id] = d.data(); });
+    render();
+  });
+
+    // ── SIDEBAR ROLE ─────────────────────────────────────────
+  (function applySidebarRole() {
+    if (!DB.isOwner()) {
+      ["nav-orders","nav-assign","nav-create","nav-review","nav-settings","nav-dashboard"].forEach(id=>{
+        const el = document.getElementById(id); if(el) el.style.display="none";
+      });
+    }
+    const lbl = document.getElementById("sidebar-role-label");
+    if (lbl) lbl.textContent = DB.isOwner() ? "Owner Panel" : "Owner Panel";
+  })();
+  document.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', () => { if(window.innerWidth<=768) closeSidebar(); }));
+});
+</script>
+</body>
+</html>

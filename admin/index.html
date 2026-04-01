@@ -1,29 +1,20 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Admin — CallPay</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="admin.css">
 <script>
-function toggleSidebar(){
-  const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');
-  if(!sb||!ov||!btn)return;
-  const open=sb.classList.toggle('open');
-  ov.classList.toggle('open',open);btn.textContent=open?'✕':'☰';
-}
-function closeSidebar(){
-  const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');
-  if(!sb||!ov||!btn)return;
-  sb.classList.remove('open');ov.classList.remove('open');btn.textContent='☰';
-}
+function toggleSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;const open=sb.classList.toggle('open');ov.classList.toggle('open',open);btn.textContent=open?'✕':'☰';}
+function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;sb.classList.remove('open');ov.classList.remove('open');btn.textContent='☰';}
 </script>
 </head>
 <body>
 
+<!-- LOGIN -->
 <div class="login-page" id="login-page">
   <div class="login-card">
     <div class="login-brand">
@@ -50,136 +41,89 @@ function closeSidebar(){
   </div>
 </div>
 
+<!-- DASHBOARD -->
 <div class="app" id="dashboard" style="display:none">
   <div class="mobile-topbar"><span class="mobile-logo">CallPay</span><button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button></div>
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
   <aside class="sidebar">
     <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">Admin Panel</div></div>
     <nav class="sidebar-nav">
-      <a href="index.html"      class="nav-item active" id="nav-dashboard"><span class="nav-icon">📊</span>Dashboard</a>
-      <a href="orders.html"     class="nav-item" id="nav-orders"><span class="nav-icon">📦</span>Order</a>
-      <a href="unassigned.html" class="nav-item" id="nav-assign"><span class="nav-icon">🎯</span>Assign Talent</a>
-      <a href="status.html"     class="nav-item"><span class="nav-icon">🟢</span>Status Talent</a>
-      <a href="talents.html"    class="nav-item"><span class="nav-icon">👥</span>Talent</a>
-      <a href="create-talent.html" class="nav-item" id="nav-create"><span class="nav-icon">➕</span>Buat Akun Talent</a>
-      <a href="review.html"        class="nav-item" id="nav-review"><span class="nav-icon">📋</span>Review Talent</a>
-      <a href="settings.html"   class="nav-item" id="nav-settings"><span class="nav-icon">⚙️</span>Pengaturan</a>
-      <a href="../index.html"   class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
+      <a href="talents.html" class="nav-item"><span class="nav-icon">👥</span>Talent</a>
+      <a href="status.html"  class="nav-item"><span class="nav-icon">🟢</span>Status Talent</a>
+      <a href="../index.html" class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" id="logout-btn">Logout →</button></div>
   </aside>
   <main class="main">
-    <div class="page-header"><h1>Dashboard 👋</h1><p id="dash-sub">Selamat datang</p></div>
-    <div class="stats-row" id="stats-row"></div>
-    <div class="grid-2" style="margin-bottom:20px">
-      <div class="panel"><h3>📊 Layanan Terpopuler</h3><div id="svc-chart"></div></div>
-      <div class="panel"><h3>🏆 Talent Terbanyak Dipesan</h3><div id="tlnt-chart"></div></div>
+    <div class="page-header">
+      <h1>Admin Panel 👋</h1>
+      <p id="dash-sub">Selamat datang</p>
     </div>
-    <div class="panel">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <h3 style="margin:0">🗂️ Order Terbaru</h3>
-        <a href="orders.html" style="font-size:.8rem;font-weight:700;color:var(--pink)">Lihat semua →</a>
-      </div>
-      <div class="table-wrap">
-        <table><thead><tr><th>#</th><th>Talent</th><th>Layanan</th><th>Harga</th><th>Status</th><th>Tgl</th></tr></thead>
-        <tbody id="recent-tbody"></tbody></table>
-        <div class="empty" id="no-orders" style="display:none"><div class="empty-icon">📭</div><p>Belum ada order</p></div>
-      </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-top:8px">
+      <a href="talents.html" style="text-decoration:none">
+        <div class="panel" style="cursor:pointer;transition:border-color .2s;border:1px solid var(--border)" onmouseover="this.style.borderColor='var(--pink)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:2.2rem;margin-bottom:12px">👥</div>
+          <div style="font-weight:900;font-size:1rem;margin-bottom:4px">Talent</div>
+          <div style="font-size:.8rem;color:var(--muted);font-weight:600">Lihat daftar semua talent</div>
+        </div>
+      </a>
+      <a href="status.html" style="text-decoration:none">
+        <div class="panel" style="cursor:pointer;transition:border-color .2s;border:1px solid var(--border)" onmouseover="this.style.borderColor='var(--pink)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:2.2rem;margin-bottom:12px">🟢</div>
+          <div style="font-weight:900;font-size:1rem;margin-bottom:4px">Status Talent</div>
+          <div style="font-size:.8rem;color:var(--muted);font-weight:600">Monitor & ubah status online talent</div>
+        </div>
+      </a>
     </div>
   </main>
 </div>
-<div class="toast" id="toast"></div>
 
+<div class="toast" id="toast"></div>
 <script type="module">
 import { DB } from './data.js';
 
-// Halaman yang hanya bisa diakses owner
-const OWNER_ONLY_PAGES = ['orders.html','unassigned.html','create-talent.html','review.html','settings.html','index.html'];
+const SESSION_KEY = 'cp_admin_v2';
+
+function isAdminLoggedIn() { return sessionStorage.getItem(SESSION_KEY) === '1'; }
+function setAdminLogin(v)  { v ? sessionStorage.setItem(SESSION_KEY,'1') : sessionStorage.removeItem(SESSION_KEY); }
 
 async function doLogin() {
   const cfg = await DB.getSettingsAsync();
-  const u=document.getElementById('u').value.trim(), p=document.getElementById('p').value;
-  document.getElementById('err').style.display='none';
-  if (p === cfg.ownerPassword) {
-    // Login sebagai Owner — akses penuh
-    DB.setLogin(true, 'owner');
-    showDash('owner');
-  } else if (u === cfg.username && p === cfg.password) {
-    // Login sebagai Admin — hanya Talent & Status Talent
-    DB.setLogin(true, 'admin');
-    showDash('admin');
+  const u = document.getElementById('u').value.trim();
+  const p = document.getElementById('p').value;
+  document.getElementById('err').style.display = 'none';
+  if (u === (cfg.username || 'admin') && p === (cfg.password || 'callpay2021')) {
+    setAdminLogin(true);
+    showDash();
   } else {
-    document.getElementById('err').style.display='block';
-    document.getElementById('p').value='';
+    document.getElementById('err').style.display = 'block';
+    document.getElementById('p').value = '';
   }
 }
-document.getElementById('login-btn').onclick=doLogin;
-['u','p'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
-document.getElementById('logout-btn').onclick=()=>{ DB.setLogin(false); document.getElementById('dashboard').style.display='none'; document.getElementById('login-page').style.display='flex'; };
-document.getElementById('back-web').onclick=()=>{ if(confirm('Kembali ke website?\nSession admin akan logout.')){ DB.setLogin(false); window.location.href='../index.html'; } return false; };
 
-function showDash(role){
-  document.getElementById('login-page').style.display='none';
-  document.getElementById('dashboard').style.display='flex';
-  // Tampilkan/sembunyikan menu sesuai role
-  applySidebarRole(role || (DB.isOwner() ? 'owner' : 'admin'));
-  DB.onOrdersChange(orders=>renderDash(orders));
+function showDash() {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'flex';
+  const cfg = DB.getSettings();
+  document.getElementById('dash-sub').textContent = `Selamat datang, ${cfg.username || 'Admin'}`;
 }
 
-function applySidebarRole(role) {
-  // Elemen yang hanya muncul untuk owner
-  const ownerOnly = ['nav-orders','nav-assign','nav-create','nav-review','nav-settings','nav-dashboard'];
-  if (role === 'admin') {
-    ownerOnly.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    });
-  }
-  // Tampilkan label role di sidebar
-  const sub = document.querySelector('.sidebar-logo-sub');
-  if (sub) sub.textContent = role === 'owner' ? 'Owner Panel' : 'Admin Panel';
-}
+document.getElementById('login-btn').onclick = doLogin;
+['u','p'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); }));
+document.getElementById('logout-btn').onclick = () => {
+  setAdminLogin(false);
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('login-page').style.display = 'flex';
+};
+document.getElementById('back-web').onclick = () => {
+  if(confirm('Kembali ke website?\nKamu akan logout.')) { setAdminLogin(false); window.location.href='../index.html'; }
+  return false;
+};
 
-function renderDash(orders){
-  const cfg=DB.getSettings();
-  document.getElementById('dash-sub').textContent=`Selamat datang kembali, ${cfg.username}`;
-  const rev=orders.filter(o=>o.status==='selesai').reduce((s,o)=>s+(o.price||0),0);
-  document.getElementById('stats-row').innerHTML=[
-    {i:'📦',v:orders.length,l:'Total Order',c:'pk'},
-    {i:'✅',v:orders.filter(o=>o.status==='selesai').length,l:'Selesai',c:'gr'},
-    {i:'⏳',v:orders.filter(o=>['baru','proses'].includes(o.status)).length,l:'Aktif',c:'bl'},
-    {i:'💰',v:DB.formatRp(rev),l:'Pendapatan',c:'pk'},
-  ].map(s=>`<div class="stat-box"><div class="stat-icon">${s.i}</div><div class="stat-val ${s.c}">${s.v}</div><div class="stat-label">${s.l}</div></div>`).join('');
-
-  const svc={};orders.forEach(o=>{svc[o.service]=(svc[o.service]||0)+1;});
-  const ms=Math.max(...Object.values(svc),1);
-  document.getElementById('svc-chart').innerHTML=Object.keys(svc).length
-    ?Object.entries(svc).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="bar-row"><div class="bar-meta"><span>${k}</span><span>${v}</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/ms*100)}%"></div></div></div>`).join('')
-    :'<p style="color:var(--muted);font-size:.85rem">Belum ada data</p>';
-
-  const tl={};orders.forEach(o=>{if(o.talentName)tl[o.talentName]=(tl[o.talentName]||0)+1;});
-  const mt=Math.max(...Object.values(tl),1);
-  document.getElementById('tlnt-chart').innerHTML=Object.keys(tl).length
-    ?Object.entries(tl).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,v])=>`<div class="bar-row"><div class="bar-meta"><span>${k}</span><span>${v}</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/mt*100)}%"></div></div></div>`).join('')
-    :'<p style="color:var(--muted);font-size:.85rem">Belum ada data</p>';
-
-  const tbody=document.getElementById('recent-tbody'),no=document.getElementById('no-orders');
-  if(!orders.length){tbody.innerHTML='';no.style.display='block';return;}
-  no.style.display='none';
-  tbody.innerHTML=orders.slice(0,5).map(o=>`<tr>
-    <td style="color:var(--muted);font-size:.72rem">${(o.id||'').slice(-8)}</td>
-    <td>${o.talentName||'<i style="color:var(--muted)">Unassigned</i>'}</td>
-    <td>${o.service||'-'}</td>
-    <td style="color:var(--pink);font-weight:800">${DB.formatRp(o.price||0)}</td>
-    <td><span class="badge badge-${o.status}">${o.status}</span></td>
-    <td style="color:var(--muted);font-size:.78rem">${DB.formatDate(o.date)}</td>
-  </tr>`).join('');
-}
-
-document.addEventListener('DOMContentLoaded',async()=>{
+document.addEventListener('DOMContentLoaded', async () => {
   await DB.getSettingsAsync();
-  if(DB.isLoggedIn()) showDash();
-  document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{if(window.innerWidth<=768)closeSidebar();}));
+  if (isAdminLoggedIn()) showDash();
+  document.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', () => { if(window.innerWidth<=768) closeSidebar(); }));
 });
 </script>
 </body>
