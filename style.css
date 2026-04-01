@@ -209,11 +209,11 @@ button{cursor:pointer;font-family:'Nunito',sans-serif}
 .talent-card{display:flex;flex-direction:row;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:box-shadow .3s,border-color .3s}
 .talent-card:hover{box-shadow:var(--shadow-md);border-color:var(--border-pink)}
 
-.talent-photo{position:relative;width:90px;min-width:90px;flex-shrink:0}
+.talent-photo{position:relative;width:90px;min-width:90px;flex-shrink:0;overflow:hidden;align-self:stretch}
 .talent-photo img{
   width:100%;height:100%;
   object-fit:cover;object-position:center top;
-  display:block;
+  display:block;position:absolute;top:0;left:0;
 }
 .gender-pill{
   position:absolute;top:8px;left:8px;
