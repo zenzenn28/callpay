@@ -1,10 +1,14 @@
 // ============================================================
-//  CALLPAY — TALENT APP v3
-//  - Hapus tab Order Masuk
-//  - Tambah tab Setting (edit profil → pending admin)
+//  CALLPAY — TALENT APP v4
+//  - Tab Orderanku dihapus
+//  - Sistem point otomatis: online 1 jam +1 (maks 250), tidak online/order sehari -3
+//  - Point history (klik point box → lihat riwayat + alasan)
+//  - Admin bisa tulis alasan saat ubah point
 // ============================================================
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, onSnapshot,
+         collection, addDoc, getDocs, orderBy, query, limit,
+         serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 import { DB, DUR_LABEL } from './admin/data.js';
 
 const FIREBASE_CONFIG = {
@@ -22,11 +26,13 @@ const CLOUDINARY_CLOUD  = 'dnbjw43hp';
 const CLOUDINARY_PRESET = 'callpay_audio';
 const ALL_SERVICES = ['Temen Call','Sleepcall','Temen Curhat','Pacar Virtual'];
 const SESSION_KEY  = 'cp_talent_v2';
+const POINT_MAX    = 250;
 
-let currentTalent = null;
-let _docId        = null;
+let currentTalent    = null;
+let _docId           = null;
 let _uploadedAudioUrl = '';
 let _uploadedPhotoUrl = '';
+let _onlineTimer     = null; // interval 1 jam untuk +1 point
 
 // ── SESSION ───────────────────────────────────────────────
 function getSession() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)); } catch { return null; } }
@@ -43,7 +49,6 @@ function toast(msg, type = '') {
 }
 
 function showPage(id) {
-  // display yang benar untuk tiap page
   const displayMap = { 'login-page': 'flex', 'dashboard': 'flex', 'setup-page': 'block' };
   ['login-page','dashboard','setup-page'].forEach(p => {
     const el = document.getElementById(p);
@@ -86,8 +91,9 @@ function loadDashboard() {
   }
   showPage('dashboard');
   listenStatus();
-  listenOrders();
   updateBanner();
+  renderSettingsPanel();
+  checkDailyPenalty();
 }
 
 function updateBanner() {
@@ -104,7 +110,183 @@ function updateBanner() {
   } else { b.innerHTML = ''; }
 }
 
-// ── SETUP PAGE (first time / rejected) ────────────────────
+// ── POINT DISPLAY ─────────────────────────────────────────
+function updatePointDisplay(points) {
+  const el = document.getElementById('talent-point-box');
+  if (!el) return;
+  const pct = Math.min(100, Math.round((points / POINT_MAX) * 100));
+  el.innerHTML = `
+    <div onclick="openPointModal()" style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:16px 18px;margin-bottom:16px;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='rgba(167,139,250,.5)'" onmouseout="this.style.borderColor='rgba(167,139,250,.25)'">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:1.8rem">⭐</div>
+          <div>
+            <div style="font-size:.7rem;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1px">Total Point Kamu</div>
+            <div style="font-size:1.6rem;font-weight:900;color:#a78bfa;line-height:1">${points} <span style="font-size:.85rem">/ ${POINT_MAX}</span></div>
+          </div>
+        </div>
+        <div style="font-size:.72rem;color:rgba(167,139,250,.6);font-weight:700">Tap untuk riwayat →</div>
+      </div>
+      <div style="height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:99px;transition:width .5s ease"></div>
+      </div>
+    </div>`;
+}
+
+// ── POINT MODAL (history) ─────────────────────────────────
+window.openPointModal = async function() {
+  const modal = document.getElementById('point-modal');
+  modal.style.display = 'flex';
+  const listEl = document.getElementById('point-history-list');
+  listEl.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(240,235,248,.45)">Memuat riwayat...</div>';
+  try {
+    const q    = query(collection(db, 'talents', _docId, 'point_history'), orderBy('createdAt', 'desc'), limit(30));
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      listEl.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(240,235,248,.45)"><div style="font-size:2rem;margin-bottom:8px">📭</div><p style="font-size:.85rem">Belum ada riwayat point</p></div>';
+      return;
+    }
+    listEl.innerHTML = snap.docs.map(d => {
+      const h     = d.data();
+      const delta = h.delta || 0;
+      const isPos = delta >= 0;
+      const color = isPos ? '#3DD68C' : '#FF5C5C';
+      const sign  = isPos ? '+' : '';
+      const date  = h.createdAt?.toDate ? h.createdAt.toDate().toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-';
+      return `
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+        <div style="width:36px;height:36px;border-radius:50%;background:${isPos?'rgba(61,214,140,.1)':'rgba(255,92,92,.1)'};border:1px solid ${isPos?'rgba(61,214,140,.25)':'rgba(255,92,92,.25)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.9rem">${isPos?'⬆️':'⬇️'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <div style="font-size:.85rem;font-weight:700;color:var(--text)">${h.reason || 'Tidak ada keterangan'}</div>
+            <div style="font-size:1rem;font-weight:900;color:${color};white-space:nowrap">${sign}${delta}</div>
+          </div>
+          <div style="font-size:.72rem;color:rgba(240,235,248,.4);margin-top:3px;font-weight:600">${date} · Dari: ${h.total ?? '-'} point</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    listEl.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,92,92,.7)">Gagal memuat riwayat.</div>';
+  }
+};
+
+window.closePointModal = function() {
+  document.getElementById('point-modal').style.display = 'none';
+};
+
+// ── POINT SYSTEM OTOMATIS ─────────────────────────────────
+// +1 setiap 1 jam online (dijalankan setiap masuk online)
+function startOnlineTimer() {
+  stopOnlineTimer();
+  _onlineTimer = setInterval(async () => {
+    await addPointAuto(1, 'Online 1 jam ⏱️');
+  }, 60 * 60 * 1000); // 1 jam
+}
+
+function stopOnlineTimer() {
+  if (_onlineTimer) { clearInterval(_onlineTimer); _onlineTimer = null; }
+}
+
+// Cek penalty harian: -3 jika tidak online dan tidak ada orderan hari ini
+async function checkDailyPenalty() {
+  try {
+    const snap  = await getDoc(doc(db, 'talents', _docId));
+    if (!snap.exists()) return;
+    const data  = snap.data();
+    const today = new Date().toDateString();
+    const lastCheck = data._lastPenaltyCheck || '';
+    if (lastCheck === today) return; // sudah dicek hari ini
+
+    const wasOnline    = data._onlineTodayMinutes >= 60; // minimal 1 jam online
+    const hasOrderToday = await checkHasOrderToday();
+
+    if (!wasOnline && !hasOrderToday) {
+      await addPointAuto(-3, 'Tidak online & tidak ada orderan hari ini 📉');
+    }
+    // Reset counter harian
+    await setDoc(doc(db, 'talents', _docId), {
+      _lastPenaltyCheck: today,
+      _onlineTodayMinutes: 0,
+    }, { merge: true });
+  } catch(e) { console.warn('checkDailyPenalty error:', e); }
+}
+
+async function checkHasOrderToday() {
+  try {
+    const orders = await DB.getOrders();
+    const today  = new Date().toDateString();
+    const name   = currentTalent.name || _docId;
+    return orders.some(o => o.talentName === name && new Date(o.date).toDateString() === today);
+  } catch { return false; }
+}
+
+// Tambah/kurang point otomatis (sistem) + catat history
+async function addPointAuto(delta, reason) {
+  try {
+    const snap   = await getDoc(doc(db, 'talents', _docId));
+    const data   = snap.exists() ? snap.data() : {};
+    const current = data.points !== undefined ? data.points : 100;
+    const newVal  = Math.min(POINT_MAX, Math.max(0, current + delta));
+    if (newVal === current) return; // sudah maks atau 0
+    await setDoc(doc(db, 'talents', _docId), { points: newVal }, { merge: true });
+    await addDoc(collection(db, 'talents', _docId, 'point_history'), {
+      delta, reason, total: newVal,
+      type: 'auto',
+      createdAt: serverTimestamp(),
+    });
+  } catch(e) { console.warn('addPointAuto error:', e); }
+}
+
+// ── STATUS ────────────────────────────────────────────────
+function listenStatus() {
+  onSnapshot(doc(db, 'talents', _docId), snap => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    currentTalent = { ...currentTalent, ...data };
+    const online = data.online !== false;
+    updateStatusUI(online);
+    updateBanner();
+    updatePointDisplay(data.points !== undefined ? data.points : 100);
+    document.getElementById('t-avatar').textContent   = (data.name || _docId)[0].toUpperCase();
+    document.getElementById('t-name-top').textContent = data.name || _docId;
+    // Start/stop timer online
+    if (online) { startOnlineTimer(); trackOnlineMinutes(); }
+    else { stopOnlineTimer(); }
+  });
+}
+
+// Catat menit online hari ini (untuk cek penalty)
+let _onlineMinuteInterval = null;
+function trackOnlineMinutes() {
+  if (_onlineMinuteInterval) return;
+  _onlineMinuteInterval = setInterval(async () => {
+    const snap = await getDoc(doc(db, 'talents', _docId));
+    if (!snap.exists()) return;
+    const data = snap.data();
+    if (data.online === false) { clearInterval(_onlineMinuteInterval); _onlineMinuteInterval = null; return; }
+    const mins = (data._onlineTodayMinutes || 0) + 1;
+    await setDoc(doc(db, 'talents', _docId), { _onlineTodayMinutes: mins }, { merge: true });
+  }, 60 * 1000); // setiap 1 menit
+}
+
+function updateStatusUI(online) {
+  const dot=document.getElementById('status-dot'), text=document.getElementById('status-text'), toggle=document.getElementById('status-toggle');
+  if (!dot||!text||!toggle) return;
+  dot.className    = 'status-dot '+(online?'online':'offline');
+  text.textContent = online ? 'Kamu sedang ONLINE' : 'Kamu sedang OFFLINE';
+  toggle.textContent = online ? 'Set Offline' : 'Set Online';
+  toggle.className   = 'status-toggle'+(online?' active':'');
+}
+
+async function toggleStatus() {
+  if (!_docId) return;
+  const snap = await getDoc(doc(db, 'talents', _docId));
+  const on   = snap.exists() ? snap.data().online !== false : false;
+  await setDoc(doc(db, 'talents', _docId), { online: !on }, { merge: true });
+  toast(on ? '⚫ Kamu OFFLINE' : '🟢 Kamu ONLINE');
+}
+
+// ── SETUP PAGE ────────────────────────────────────────────
 window._showSetup = function() { renderSetupPage(); showPage('setup-page'); };
 
 function renderSetupPage() {
@@ -117,17 +299,13 @@ function renderSetupPage() {
   attachFormHandlers();
 }
 
-// ── SETTING PANEL (di dalam dashboard) ────────────────────
 function renderSettingsPanel() {
   const t  = currentTalent;
   const el = document.getElementById('settings-content');
   if (!el) return;
   _uploadedAudioUrl = '';
   _uploadedPhotoUrl = '';
-
-  // Jika ada pending edit, tampilkan info
   const hasPendingEdit = currentTalent._pendingEdit === true;
-
   el.innerHTML = `
     ${hasPendingEdit ? `
     <div style="background:rgba(255,184,0,.08);border:1px solid rgba(255,184,0,.2);border-radius:12px;padding:14px 18px;margin-bottom:20px;font-size:.84rem;font-weight:700;color:var(--yellow)">
@@ -141,12 +319,10 @@ function renderSettingsPanel() {
 function buildProfileForm(t, isSettingMode) {
   const title   = isSettingMode ? '✏️ Edit Profil' : (t.status==='rejected' ? '✏️ Edit & Kirim Ulang' : '📝 Setup Profil');
   const btnText = isSettingMode ? '📤 Simpan & Minta Persetujuan' : (t.status==='rejected' ? '📤 Kirim Ulang' : '📤 Submit untuk Review');
-
   return `
   <div class="setup-card">
     <h2 style="font-size:1.2rem;font-weight:900;margin-bottom:20px">${title}</h2>
     ${!isSettingMode && t.status==='rejected' && t.declineReason ? `<div style="background:rgba(255,92,92,.06);border:1px solid rgba(255,92,92,.2);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.82rem;color:var(--red);font-weight:700">❌ "${t.declineReason}"</div>` : ''}
-
     <div class="setup-section">
       <div class="setup-label">📷 Foto Profil *</div>
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -163,7 +339,6 @@ function buildProfileForm(t, isSettingMode) {
         <p id="photo-prog-txt" style="font-size:.73rem;color:var(--muted);margin-top:4px"></p>
       </div>
     </div>
-
     <div class="setup-section">
       <div class="setup-label">📛 Nama Tampil *</div>
       <input type="text" id="s-name" class="setup-input" value="${t.name||''}" placeholder="Nama kamu">
@@ -176,7 +351,6 @@ function buildProfileForm(t, isSettingMode) {
       <div class="setup-label">💬 Bio Singkat</div>
       <textarea id="s-bio" class="setup-input" rows="3" placeholder="Ceritakan tentang dirimu...">${t.bio||''}</textarea>
     </div>
-
     <div class="setup-section">
       <div class="setup-label">🎯 Layanan *</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px" id="svc-wrap">
@@ -187,7 +361,6 @@ function buildProfileForm(t, isSettingMode) {
         </label>`).join('')}
       </div>
     </div>
-
     <div class="setup-section">
       <div class="setup-label">🎵 Sample Suara *</div>
       ${t.audio ? `<audio controls style="width:100%;height:32px;margin-bottom:8px" src="${t.audio}"></audio>` : ''}
@@ -201,7 +374,6 @@ function buildProfileForm(t, isSettingMode) {
       </div>
       <div id="audio-new" style="display:none;margin-top:8px"><audio controls style="width:100%;height:32px" id="audio-new-el"></audio></div>
     </div>
-
     <p id="s-err" style="color:var(--red);font-size:.82rem;font-weight:700;display:none;margin-bottom:8px"></p>
     <button id="s-submit" onclick="submitProfile()" style="width:100%;padding:13px;border-radius:99px;background:var(--pink-mid);color:white;border:none;font-weight:800;font-size:.9rem;cursor:pointer;transition:opacity .2s;box-shadow:0 0 18px var(--pink-glow)">
       ${btnText}
@@ -225,13 +397,11 @@ window.previewPhoto = function(input) {
   document.getElementById('photo-prog').style.display = 'block';
   const bar = document.getElementById('photo-bar');
   const txt = document.getElementById('photo-prog-txt');
-  // Preview lokal dulu
   const reader = new FileReader();
   reader.onload = e => {
     document.getElementById('photo-preview').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover">`;
   };
   reader.readAsDataURL(file);
-  // Upload ke Cloudinary
   const fd = new FormData();
   fd.append('file', file);
   fd.append('upload_preset', CLOUDINARY_PRESET);
@@ -279,10 +449,6 @@ window.handleAudio = function(input) {
   xhr.send(fd);
 };
 
-// ── SUBMIT PROFIL (pertama kali / dari setup page) ────────
-//     Langsung pending di talents collection
-// ── SUBMIT DARI SETTING (talent sudah approved) ──────────
-//     Simpan ke pending_edits collection → admin review dulu
 window.submitProfile = async function() {
   const name      = document.getElementById('s-name')?.value.trim();
   const age       = parseInt(document.getElementById('s-age')?.value);
@@ -291,158 +457,36 @@ window.submitProfile = async function() {
   const errEl     = document.getElementById('s-err');
   const btn       = document.getElementById('s-submit');
   errEl.style.display = 'none';
-
   if (!name)                { errEl.textContent='Nama wajib diisi.'; errEl.style.display='block'; return; }
   if (!age||age<18||age>35) { errEl.textContent='Umur harus 18–35 tahun.'; errEl.style.display='block'; return; }
   if (!services.length)     { errEl.textContent='Pilih minimal 1 layanan.'; errEl.style.display='block'; return; }
-
-  // Foto: wajib kalau belum ada
-  if (!_uploadedPhotoUrl && !currentTalent.img) {
-    errEl.textContent='Upload foto profil terlebih dahulu.'; errEl.style.display='block'; return;
-  }
-  // Audio: wajib kalau belum ada
-  if (!_uploadedAudioUrl && !currentTalent.audio) {
-    errEl.textContent='Upload sample suara terlebih dahulu.'; errEl.style.display='block'; return;
-  }
-
+  if (!_uploadedPhotoUrl && !currentTalent.img) { errEl.textContent='Upload foto profil terlebih dahulu.'; errEl.style.display='block'; return; }
+  if (!_uploadedAudioUrl && !currentTalent.audio) { errEl.textContent='Upload sample suara terlebih dahulu.'; errEl.style.display='block'; return; }
   btn.disabled=true; btn.textContent='Mengirim...';
   try {
     const finalImg   = _uploadedPhotoUrl   || currentTalent.img   || '';
     const finalAudio = _uploadedAudioUrl   || currentTalent.audio || '';
     const isApproved = currentTalent.status === 'approved';
-
     if (isApproved) {
-      // ── Talent sudah approved → simpan ke pending_edits, bukan langsung ke talents
-      await setDoc(doc(db, 'pending_edits', _docId), {
-        talentDocId  : _docId,
-        name, age, bio, services,
-        img          : finalImg,
-        audio        : finalAudio,
-        submittedAt  : new Date().toISOString(),
-        status       : 'pending',
-      });
-      // Tandai di talents bahwa ada pending edit
+      await setDoc(doc(db, 'pending_edits', _docId), { talentDocId:_docId, name, age, bio, services, img:finalImg, audio:finalAudio, submittedAt:new Date().toISOString(), status:'pending' });
       await setDoc(doc(db, 'talents', _docId), { _pendingEdit: true }, { merge: true });
       currentTalent._pendingEdit = true;
       toast('✅ Perubahan dikirim! Menunggu persetujuan admin.', 'success');
-      _uploadedAudioUrl = '';
-      _uploadedPhotoUrl = '';
-      // Re-render setting untuk tampilkan banner pending
+      _uploadedAudioUrl = ''; _uploadedPhotoUrl = '';
       renderSettingsPanel();
     } else {
-      // ── First time / rejected → langsung ke talents dengan status pending
-      await setDoc(doc(db, 'talents', _docId), {
-        name, age, bio, services,
-        img          : finalImg,
-        audio        : finalAudio,
-        status       : 'pending',
-        submittedAt  : new Date().toISOString(),
-        _pendingEdit : false,
-      }, { merge: true });
-      currentTalent = { ...currentTalent, name, age, bio, services, img: finalImg, audio: finalAudio, status: 'pending' };
+      await setDoc(doc(db, 'talents', _docId), { name, age, bio, services, img:finalImg, audio:finalAudio, status:'pending', submittedAt:new Date().toISOString(), _pendingEdit:false }, { merge: true });
+      currentTalent = { ...currentTalent, name, age, bio, services, img:finalImg, audio:finalAudio, status:'pending' };
       toast('✅ Profil dikirim! Tunggu review admin.');
-      _uploadedAudioUrl = '';
-      _uploadedPhotoUrl = '';
-      showPage('dashboard');
-      updateBanner();
+      _uploadedAudioUrl = ''; _uploadedPhotoUrl = '';
+      showPage('dashboard'); updateBanner();
     }
   } catch(e) {
-    errEl.textContent='Gagal: '+e.message;
-    errEl.style.display='block';
+    errEl.textContent='Gagal: '+e.message; errEl.style.display='block';
   }
   btn.disabled=false;
-  btn.textContent = currentTalent.status === 'approved'
-    ? '📤 Simpan & Minta Persetujuan'
-    : (currentTalent.status==='rejected' ? '📤 Kirim Ulang' : '📤 Submit untuk Review');
+  btn.textContent = currentTalent.status === 'approved' ? '📤 Simpan & Minta Persetujuan' : (currentTalent.status==='rejected' ? '📤 Kirim Ulang' : '📤 Submit untuk Review');
 };
-
-// ── STATUS ────────────────────────────────────────────────
-function listenStatus() {
-  onSnapshot(doc(db, 'talents', _docId), snap => {
-    if (!snap.exists()) return;
-    const data = snap.data();
-    currentTalent = { ...currentTalent, ...data };
-    updateStatusUI(data.online !== false);
-    updateBanner();
-    updatePointDisplay(data.points !== undefined ? data.points : 100);
-    // Avatar & nama
-    document.getElementById('t-avatar').textContent   = (data.name || _docId)[0].toUpperCase();
-    document.getElementById('t-name-top').textContent = data.name || _docId;
-  });
-}
-
-function updatePointDisplay(points) {
-  const el = document.getElementById('talent-point-box');
-  if (el) el.innerHTML = `
-    <div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
-      <div style="font-size:2rem">⭐</div>
-      <div>
-        <div style="font-size:.72rem;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Total Point Kamu</div>
-        <div style="font-size:1.6rem;font-weight:900;color:#a78bfa">${points} Point</div>
-      </div>
-    </div>`;
-}
-
-function updateStatusUI(online) {
-  const dot=document.getElementById('status-dot'), text=document.getElementById('status-text'), toggle=document.getElementById('status-toggle');
-  if (!dot||!text||!toggle) return;
-  dot.className    = 'status-dot '+(online?'online':'offline');
-  text.textContent = online ? 'Kamu sedang ONLINE' : 'Kamu sedang OFFLINE';
-  toggle.textContent = online ? 'Set Offline' : 'Set Online';
-  toggle.className   = 'status-toggle'+(online?' active':'');
-}
-
-async function toggleStatus() {
-  if (!_docId) return;
-  const snap = await getDoc(doc(db, 'talents', _docId));
-  const on   = snap.exists() ? snap.data().online !== false : false;
-  await setDoc(doc(db, 'talents', _docId), { online: !on }, { merge: true });
-  toast(on ? '⚫ Kamu OFFLINE' : '🟢 Kamu ONLINE');
-}
-
-// ── ORDERS ────────────────────────────────────────────────
-function listenOrders() {
-  DB.onOrdersChange(orders => {
-    const name = currentTalent.name || _docId;
-    renderMyOrders(orders.filter(o => o.talentName === name));
-  });
-}
-
-function renderMyOrders(orders) {
-  const el = document.getElementById('my-orders-list'); if (!el) return;
-  if (!orders.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>Belum ada orderan</p></div>';
-    return;
-  }
-  el.innerHTML = orders.map(o => {
-    const statusColor = {
-      baru:'var(--blue)', proses:'var(--yellow)', selesai:'var(--green)', batal:'var(--red)'
-    }[o.status] || 'var(--muted)';
-    return `
-    <div class="order-card">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px">
-        <div>
-          <div style="font-weight:900;font-size:.97rem">${o.service||'-'}</div>
-          <div style="font-size:.78rem;color:var(--muted);font-weight:600;margin-top:2px">${DUR_LABEL[o.duration]||o.duration+' mnt'} · ${o.date ? new Date(o.date).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '-'}</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:1rem;font-weight:900;color:var(--pink)">Rp ${(o.price||0).toLocaleString('id-ID')}</div>
-          <span style="display:inline-block;margin-top:4px;padding:2px 10px;border-radius:99px;border:1.5px solid ${statusColor};color:${statusColor};font-size:.7rem;font-weight:800;text-transform:uppercase">${o.status}</span>
-        </div>
-      </div>
-      ${o.note ? `<div style="font-size:.8rem;color:var(--muted);background:rgba(255,255,255,.04);border-radius:8px;padding:8px 12px;font-style:italic">${o.note}</div>` : ''}
-    </div>`;
-  }).join('');
-}
-
-// ── TABS ──────────────────────────────────────────────────
-function switchTab(tab) {
-  document.getElementById('tab-orders').classList.toggle('active', tab==='orders');
-  document.getElementById('tab-settings').classList.toggle('active', tab==='settings');
-  document.getElementById('orders-section').style.display   = tab==='orders'   ? 'block' : 'none';
-  document.getElementById('settings-section').style.display = tab==='settings' ? 'block' : 'none';
-  if (tab === 'settings') renderSettingsPanel();
-}
 
 // ── INIT ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -458,13 +502,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else clearSession();
     } catch { clearSession(); }
   }
-
   document.getElementById('t-login-btn').onclick = doLogin;
   document.getElementById('t-user').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
   document.getElementById('t-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
   document.getElementById('t-logout-btn').onclick = () => {
+    stopOnlineTimer();
     clearSession(); currentTalent=null; _docId=null;
-    // Bersihkan form login
     const userEl = document.getElementById('t-user');
     const passEl = document.getElementById('t-pass');
     const errEl  = document.getElementById('t-err');
@@ -474,7 +517,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     showPage('login-page');
   };
   document.getElementById('status-toggle').onclick = toggleStatus;
-
-  document.getElementById('tab-orders').onclick   = () => switchTab('orders');
-  document.getElementById('tab-settings').onclick = () => switchTab('settings');
+  document.getElementById('tab-settings').onclick  = () => renderSettingsPanel();
+  // Tutup modal point kalau klik backdrop
+  document.getElementById('point-modal').addEventListener('click', function(e) {
+    if (e.target === this) closePointModal();
+  });
 });

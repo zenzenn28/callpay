@@ -42,7 +42,7 @@ function renderTalents() {
           <div class="talent-age">${t.age} tahun</div>
         </div>
         <div class="talent-tags">${t.services.map(s => `<span class="talent-tag">${s}</span>`).join('')}</div>
-        <div class="talent-bio">${t.bio || 'Hai! Senang bisa menemani hari-harimu 💕'}</div>
+        <div class="talent-bio">${(t.bio || 'Hai! Senang bisa menemani hari-harimu 💕').slice(0, 80)}${(t.bio || '').length > 80 ? '...' : ''}</div>
         <div class="talent-footer">
           <button class="pesan-btn ${t.online === false ? 'offline' : ''}" onclick="event.stopPropagation();${t.online === false ? `alert('Talent tidak available')` : `openModal('${t.id}')`}">${t.online === false ? 'Tidak Available' : 'Pesan Sekarang'}</button>
           <button class="play-audio-btn ${hasAudio ? '' : 'no-audio'}" id="play-btn-${t.id}" onclick="event.stopPropagation();toggleAudio('${t.id}','${t.audio || ''}',this)" title="${hasAudio ? 'Preview Suara' : 'Audio belum tersedia'}">
@@ -326,10 +326,11 @@ async function loadAudioFromFirestore() {
       // Sync data ke TALENTS array (talent lama berdasarkan nama)
       const t = TALENTS.find(x => x.name.toLowerCase() === d.id || String(x.id) === d.id);
       if (t) {
-        t.audio   = data.audio  || t.audio || '';
-        t.online  = data.online !== false;
-        t.img     = data.img    || t.img;
-        t.bio     = data.bio    || '';
+        t.audio    = data.audio    || t.audio || '';
+        t.online   = data.online   !== false;
+        t.img      = data.img      || t.img;
+        t.bio      = data.bio      || '';
+        t.services = data.services && data.services.length ? data.services : t.services;
         t.approved = data.status === 'approved' || !data.status;
       }
       // Talent baru dari Firestore yang sudah approved
@@ -366,8 +367,10 @@ async function listenTalentStatus() {
         const data = d.data();
         const t    = TALENTS.find(x => x.name.toLowerCase() === d.id || String(x.id) === d.id);
         if (t) {
-          t.online = data.online !== false;
-          t.audio  = data.audio || t.audio || '';
+          t.online   = data.online !== false;
+          t.audio    = data.audio || t.audio || '';
+          t.bio      = data.bio || t.bio || '';
+          t.services = data.services && data.services.length ? data.services : t.services;
           t.approved = data.status === 'approved' || !data.status;
           // Update dot langsung di DOM
           const card = document.querySelector(`[data-talent-id="${t.id}"]`);
@@ -375,6 +378,9 @@ async function listenTalentStatus() {
           const txt  = card?.querySelector('.status-txt');
           if (dot) dot.className = 'status-dot' + (t.online ? '' : ' offline');
           if (txt) txt.textContent = t.online ? 'ONLINE' : 'OFFLINE';
+          // Update tags langsung di DOM jika ada perubahan services
+          const tagsEl = card?.querySelector('.talent-tags');
+          if (tagsEl) tagsEl.innerHTML = t.services.map(s => `<span class="talent-tag">${s}</span>`).join('');
         } else if (data.status === 'approved') {
           // Talent baru yang baru di-approve — tambah dan re-render
           TALENTS.push({
