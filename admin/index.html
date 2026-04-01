@@ -11,11 +11,23 @@
 function toggleSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;const open=sb.classList.toggle('open');ov.classList.toggle('open',open);btn.textContent=open?'✕':'☰';}
 function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;sb.classList.remove('open');ov.classList.remove('open');btn.textContent='☰';}
 </script>
+<script>
+(function(){
+  var ok = sessionStorage.getItem('cp_admin_v2') === '1';
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('login-page').style.display = ok ? 'none' : 'flex';
+    if (ok) {
+      var dash = document.getElementById('dashboard');
+      if (dash) dash.style.display = 'flex';
+    }
+  });
+})();
+</script>
 </head>
 <body>
 
 <!-- LOGIN -->
-<div class="login-page" id="login-page">
+<div class="login-page" id="login-page" style="display:none">
   <div class="login-card">
     <div class="login-brand">
       <div class="login-logo">CallPay</div>
@@ -32,9 +44,11 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
     <p class="login-err" id="err">❌ Username atau password salah.</p>
     <button class="login-submit" id="login-btn">Masuk</button>
     <p class="login-hint"><a href="../index.html" style="color:var(--pink)">← Kembali ke website</a></p>
-    <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07);text-align:center">
-      <p style="font-size:.75rem;color:rgba(240,235,248,.45);font-weight:600;margin-bottom:10px">Kamu seorang talent?</p>
-      <a href="../talent.html" style="display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:99px;border:1px solid rgba(249,168,201,.25);color:#F9A8C9;font-size:.83rem;font-weight:800;text-decoration:none;transition:background .2s" onmouseover="this.style.background='rgba(249,168,201,.08)'" onmouseout="this.style.background='transparent'">
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:10px;align-items:center">
+      <a href="../owner/index.html" style="display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:99px;border:1px solid rgba(255,209,102,.3);color:#FFD166;font-size:.82rem;font-weight:800;text-decoration:none;transition:background .2s" onmouseover="this.style.background='rgba(255,209,102,.08)'" onmouseout="this.style.background='transparent'">
+        👑 Login sebagai Owner
+      </a>
+      <a href="../talent.html" style="display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:99px;border:1px solid rgba(249,168,201,.25);color:#F9A8C9;font-size:.82rem;font-weight:800;text-decoration:none;transition:background .2s" onmouseover="this.style.background='rgba(249,168,201,.08)'" onmouseout="this.style.background='transparent'">
         🌸 Login ke Talent Portal
       </a>
     </div>
@@ -59,16 +73,16 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
       <h1>Admin Panel 👋</h1>
       <p id="dash-sub">Selamat datang</p>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-top:8px">
+    <div class="dash-cards">
       <a href="talents.html" style="text-decoration:none">
-        <div class="panel" style="cursor:pointer;transition:border-color .2s;border:1px solid var(--border)" onmouseover="this.style.borderColor='var(--pink)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div class="panel" style="cursor:pointer;transition:border-color .2s,transform .2s;border:1px solid var(--border);height:100%" onmouseover="this.style.borderColor='var(--pink)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
           <div style="font-size:2.2rem;margin-bottom:12px">👥</div>
           <div style="font-weight:900;font-size:1rem;margin-bottom:4px">Talent</div>
           <div style="font-size:.8rem;color:var(--muted);font-weight:600">Lihat daftar semua talent</div>
         </div>
       </a>
       <a href="status.html" style="text-decoration:none">
-        <div class="panel" style="cursor:pointer;transition:border-color .2s;border:1px solid var(--border)" onmouseover="this.style.borderColor='var(--pink)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div class="panel" style="cursor:pointer;transition:border-color .2s,transform .2s;border:1px solid var(--border);height:100%" onmouseover="this.style.borderColor='var(--pink)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
           <div style="font-size:2.2rem;margin-bottom:12px">🟢</div>
           <div style="font-weight:900;font-size:1rem;margin-bottom:4px">Status Talent</div>
           <div style="font-size:.8rem;color:var(--muted);font-weight:600">Monitor & ubah status online talent</div>
@@ -115,10 +129,7 @@ document.getElementById('logout-btn').onclick = () => {
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('login-page').style.display = 'flex';
 };
-document.getElementById('back-web').onclick = () => {
-  if(confirm('Kembali ke website?\nKamu akan logout.')) { setAdminLogin(false); window.location.href='../index.html'; }
-  return false;
-};
+document.getElementById('back-web').addEventListener('click', (e) => { e.preventDefault(); window.open('../index.html','_blank'); });
 
 document.addEventListener('DOMContentLoaded', async () => {
   await DB.getSettingsAsync();

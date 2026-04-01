@@ -110,7 +110,8 @@ window.openModal = function(id) {
   document.getElementById('modal-service').value     = '';
   document.getElementById('modal-duration').innerHTML = '<option value="">— Pilih Layanan Dulu —</option>';
   document.getElementById('modal-note').value        = '';
-  document.getElementById('modal-price').textContent = 'Pilih layanan & durasi';
+  const adminCheck = document.getElementById('admin-fee-check');
+  if (adminCheck) adminCheck.checked = false;
   const btn = document.getElementById('modal-wa-btn');
   if (btn) { btn.disabled = true; }
   document.getElementById('order-modal').classList.add('open');
@@ -127,27 +128,27 @@ window.updateDurations = function() {
   const priceMap = svcLabel ? PRICES[svcLabel] : null;
   durSel.innerHTML = '<option value="">— Pilih Durasi —</option>';
   if (priceMap) {
-    Object.entries(priceMap).forEach(([min]) => {
+    Object.entries(priceMap).forEach(([min, price]) => {
       const opt = document.createElement('option');
       opt.value = min;
-      opt.textContent = DUR_LABEL[min] || min + ' menit';
+      const label = DUR_LABEL[min] || min + ' menit';
+      const priceStr = 'Rp ' + Number(price).toLocaleString('id-ID');
+      opt.textContent = label + '  —  ' + priceStr;
       durSel.appendChild(opt);
     });
   } else {
     durSel.innerHTML = '<option value="">— Pilih Layanan Dulu —</option>';
   }
-  updateModalPrice();
 };
 
 window.updateModalPrice = function() {
   const svcRaw   = document.getElementById('modal-service').value;
   const dur      = parseInt(document.getElementById('modal-duration').value);
-  const el       = document.getElementById('modal-price');
   const btn      = document.getElementById('modal-wa-btn');
+  const checked  = document.getElementById('admin-fee-check')?.checked || false;
   const svcLabel = SVC_KEY_TO_LABEL[svcRaw];
   const price    = (svcLabel && dur) ? PRICES[svcLabel]?.[dur] : null;
-  el.textContent = price ? 'Rp ' + price.toLocaleString('id-ID') : 'Pilih layanan & durasi';
-  if (btn) btn.disabled = !price;
+  if (btn) btn.disabled = !(price && checked);
 };
 
 window.confirmViaWA = async function() {
@@ -183,6 +184,8 @@ window.confirmViaWA = async function() {
   }
 
   // Buka WhatsApp
+  const adminFee = 3000;
+  const totalPrice = price + adminFee;
   const msg = [
     `Halo CallPay! 👋`,
     ``,
@@ -190,7 +193,7 @@ window.confirmViaWA = async function() {
     `👤 Talent: ${activeTalent.name}`,
     `🎯 Layanan: ${svcLabel}`,
     `⏱ Durasi: ${durLabel}`,
-    `💰 Harga: Rp ${price.toLocaleString('id-ID')}`,
+    `💰 Harga: Rp ${price.toLocaleString('id-ID')} + Rp 3.000 (admin) = Rp ${totalPrice.toLocaleString('id-ID')}`,
     note ? `📝 Catatan: ${note}` : '',
     ``,
     `Mohon konfirmasinya, terima kasih! 🙏`,
@@ -389,7 +392,7 @@ async function listenTalentStatus() {
           if (txt) txt.textContent = t.online ? 'ONLINE' : 'OFFLINE';
           // Update tags langsung di DOM jika ada perubahan services
           const tagsEl = card?.querySelector('.talent-tags');
-          if (tagsEl) tagsEl.innerHTML = t.services.map(s => `<span class="talent-tag ${tagClass(s)}">${s}</span>`).join('');
+          if (tagsEl) { tagsEl.className = 'talent-tags'; tagsEl.innerHTML = t.services.map(s => `<span class="talent-tag ${tagClass(s)}">${s}</span>`).join(''); }
         } else if (data.status === 'approved') {
           // Talent baru yang baru di-approve — tambah dan re-render
           TALENTS.push({

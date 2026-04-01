@@ -40,13 +40,20 @@
 function toggleSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;const open=sb.classList.toggle('open');ov.classList.toggle('open',open);btn.textContent=open?'✕':'☰';}
 function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;sb.classList.remove('open');ov.classList.remove('open');btn.textContent='☰';}
 </script>
+<script>
+if (sessionStorage.getItem('cp_admin_v2') !== '1') {
+  document.addEventListener('DOMContentLoaded', function() {
+    window.location.href = 'index.html';
+  });
+}
+</script>
 </head>
 <body>
 <div class="app">
   <div class="mobile-topbar"><span class="mobile-logo">CallPay</span><button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button></div>
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
   <aside class="sidebar">
-    <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">Admin Panel</div></div><div class="sidebar-logo-sub" id="sidebar-role-label">Admin Panel</div></div>
+    <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">Admin Panel</div></div>
         <nav class="sidebar-nav">
       <a href="talents.html" class="nav-item "><span class="nav-icon">👥</span>Talent</a>
       <a href="status.html"  class="nav-item active"><span class="nav-icon">🟢</span>Status Talent</a>
@@ -81,7 +88,7 @@ const _db = getFirestore(_app);
 let firestoreMap = {}, _filt = 'all';
 
 document.getElementById('logout-btn').onclick = () => { sessionStorage.removeItem('cp_admin_v2'); window.location.href='index.html'; };
-document.getElementById('back-web').onclick   = () => { if(confirm('Logout dari admin?')){ sessionStorage.removeItem('cp_admin_v2'); window.location.href='../index.html'; } return false; };
+document.getElementById('back-web').addEventListener('click', (e) => { e.preventDefault(); window.open('../index.html','_blank'); });
 
 window.setFilt = (v, el) => {
   _filt = v;
@@ -160,16 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     snap.forEach(d => { firestoreMap[d.id] = d.data(); });
     render();
   });
-    // ── SIDEBAR ROLE ─────────────────────────────────────────
-  (function applySidebarRole() {
-    if (!DB.isOwner()) {
-      ["nav-orders","nav-assign","nav-create","nav-review","nav-settings","nav-dashboard"].forEach(id=>{
-        const el = document.getElementById(id); if(el) el.style.display="none";
-      });
-    }
-    const lbl = document.getElementById("sidebar-role-label");
-    if (lbl) lbl.textContent = DB.isOwner() ? "Owner Panel" : "Admin Panel";
-  })();
+
   document.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', () => { if(window.innerWidth<=768) closeSidebar(); }));
 });
 </script>

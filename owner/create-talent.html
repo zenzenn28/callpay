@@ -6,7 +6,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="owner.css">
   <style>
     .form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:28px 32px;max-width:480px}
     .form-row{margin-bottom:18px}
@@ -30,17 +30,26 @@
 function toggleSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;const open=sb.classList.toggle('open');ov.classList.toggle('open',open);btn.textContent=open?'✕':'☰';}
 function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;sb.classList.remove('open');ov.classList.remove('open');btn.textContent='☰';}
 </script>
+<script>
+// Auth check — redirect ke login kalau belum login
+if (sessionStorage.getItem('cp_owner') !== '1') {
+  document.addEventListener('DOMContentLoaded', function() {
+    window.location.href = 'index.html';
+  });
+}
+</script>
 </head>
 <body>
 <div class="app">
   <div class="mobile-topbar"><span class="mobile-logo">CallPay</span><button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button></div>
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
   <aside class="sidebar">
-        <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">Owner Panel</div></div>
-        <nav class="sidebar-nav">
+    <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">👑 Owner Panel</div></div>
+    <nav class="sidebar-nav">
+      <a href="index.html"         class="nav-item"><span class="nav-icon">📊</span>Dashboard</a>
       <a href="create-talent.html" class="nav-item active"><span class="nav-icon">➕</span>Buat Akun Talent</a>
-      <a href="review.html"        class="nav-item "><span class="nav-icon">📋</span>Review Talent</a>
-      <a href="settings.html"      class="nav-item "><span class="nav-icon">⚙️</span>Pengaturan</a>
+      <a href="review.html"        class="nav-item"><span class="nav-icon">📋</span>Review Talent</a>
+      <a href="settings.html"      class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
       <a href="../index.html"      class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" id="logout-btn">Logout →</button></div>
@@ -101,7 +110,7 @@ const _app = getApps().length ? getApps()[0] : initializeApp(FIREBASE_CONFIG);
 const _db  = getFirestore(_app);
 
 document.getElementById('logout-btn').onclick = () => { sessionStorage.removeItem('cp_owner'); window.location.href = 'index.html'; };
-document.getElementById('back-web').onclick   = () => { if(confirm('Logout dari admin?')){ sessionStorage.removeItem('cp_owner'); window.location.href='../index.html'; } return false; };
+document.getElementById('back-web').addEventListener('click', (e) => { e.preventDefault(); window.open('../index.html','_blank'); });
 
 // Auto-generate username dari nama
 document.getElementById('f-name').addEventListener('input', function() {
@@ -204,17 +213,8 @@ onSnapshot(collection(_db, 'talents'), snap => {
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!DB.isLoggedIn()) { window.location.href = 'index.html'; return; }
-    // ── SIDEBAR ROLE ─────────────────────────────────────────
-  (function applySidebarRole() {
-    if (!DB.isOwner()) {
-      ["nav-orders","nav-assign","nav-create","nav-review","nav-settings","nav-dashboard"].forEach(id=>{
-        const el = document.getElementById(id); if(el) el.style.display="none";
-      });
-    }
-    const lbl = document.getElementById("sidebar-role-label");
-    if (lbl) lbl.textContent = DB.isOwner() ? "Owner Panel" : "Owner Panel";
-  })();
+  if (sessionStorage.getItem('cp_owner') !== '1') { window.location.href = 'index.html'; return; }
+
   document.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', () => { if(window.innerWidth<=768) closeSidebar(); }));
 });
 </script>

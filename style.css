@@ -228,8 +228,9 @@ button{cursor:pointer;font-family:'Nunito',sans-serif}
 .talent-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
 .talent-name{font-weight:900;font-size:.95rem;color:var(--text)}
 .talent-age{font-size:.75rem;color:var(--text-muted);font-weight:600;white-space:nowrap;padding-top:2px}
-.talent-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
-.talent-tag{font-size:.55rem;font-weight:800;padding:1px 7px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em}
+.talent-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;min-height:44px;align-content:flex-start}
+.talent-tag{font-size:.55rem;font-weight:800;padding:3px 9px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;height:20px;display:inline-flex;align-items:center}
+
 .talent-tag.tc{background:rgba(77,166,232,.12);color:#7EC8F5;border:1px solid rgba(77,166,232,.25)}
 .talent-tag.sc{background:rgba(167,139,250,.12);color:#c4b5fd;border:1px solid rgba(167,139,250,.25)}
 .talent-tag.cu{background:rgba(249,168,201,.12);color:#F9A8C9;border:1px solid rgba(249,168,201,.25)}

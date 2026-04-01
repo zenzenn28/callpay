@@ -2,22 +2,36 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Owner — CallPay</title>
+  <title>Owner Panel — CallPay</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="owner.css">
 <script>
 function toggleSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;const open=sb.classList.toggle('open');ov.classList.toggle('open',open);btn.textContent=open?'✕':'☰';}
 function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;sb.classList.remove('open');ov.classList.remove('open');btn.textContent='☰';}
+</script>
+<script>
+// Auth check secepat mungkin — cegah flash login page
+(function(){
+  var ok = sessionStorage.getItem('cp_owner') === '1';
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('login-page').style.display = ok ? 'none' : 'flex';
+    if (ok) {
+      var dash = document.getElementById('dashboard') || document.querySelector('.app');
+      if (dash) dash.style.display = 'flex';
+    }
+  });
+})();
 </script>
 </head>
 <body>
 
 <!-- LOGIN -->
-<div class="login-page" id="login-page">
+<div class="login-page" id="login-page" style="display:none">
   <div class="login-card">
     <div class="login-brand">
+      <div class="login-crown">👑</div>
       <div class="login-logo">CallPay</div>
       <div class="login-sub">Owner Panel</div>
     </div>
@@ -26,20 +40,28 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
       <input type="password" id="p" placeholder="••••••••" autocomplete="current-password">
     </div>
     <p class="login-err" id="err">❌ Password salah.</p>
-    <button class="login-submit" id="login-btn">Masuk</button>
-    <p class="login-hint"><a href="../index.html" style="color:var(--pink)">← Kembali ke website</a></p>
+    <button class="login-submit" id="login-btn">Masuk sebagai Owner</button>
+    <p class="login-hint"><a href="../index.html" style="color:var(--gold)">← Kembali ke website</a></p>
+    <p class="login-hint" style="margin-top:6px"><a href="../admin/index.html" style="color:var(--muted)">Login sebagai Admin →</a></p>
   </div>
 </div>
 
 <!-- DASHBOARD -->
 <div class="app" id="dashboard" style="display:none">
-  <div class="mobile-topbar"><span class="mobile-logo">CallPay</span><button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button></div>
+  <div class="mobile-topbar">
+    <span class="mobile-logo">CallPay</span>
+    <button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button>
+  </div>
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
   <aside class="sidebar">
-    <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">Owner Panel</div></div>
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-text">CallPay</div>
+      <div class="sidebar-logo-sub">👑 Owner Panel</div>
+    </div>
     <nav class="sidebar-nav">
+      <a href="index.html"        class="nav-item active"><span class="nav-icon">📊</span>Dashboard</a>
       <a href="create-talent.html" class="nav-item"><span class="nav-icon">➕</span>Buat Akun Talent</a>
-      <a href="review.html"        class="nav-item"><span class="nav-icon">📋</span>Review Talent</a>
+      <a href="review.html"        class="nav-item" id="nav-review"><span class="nav-icon">📋</span>Review Talent</a>
       <a href="settings.html"      class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
       <a href="../index.html"      class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
     </nav>
@@ -48,30 +70,24 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
   <main class="main">
     <div class="page-header">
       <h1>Owner Panel 👑</h1>
-      <p>Kelola talent dan pengaturan CallPay</p>
+      <p>Kelola talent dan pengaturan CallPay Agency</p>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-top:8px">
-      <a href="create-talent.html" style="text-decoration:none">
-        <div class="panel" style="cursor:pointer;transition:border-color .2s;border:1px solid var(--border)" onmouseover="this.style.borderColor='var(--pink)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:2.2rem;margin-bottom:12px">➕</div>
-          <div style="font-weight:900;font-size:1rem;margin-bottom:4px">Buat Akun Talent</div>
-          <div style="font-size:.8rem;color:var(--muted);font-weight:600">Tambah talent baru ke sistem</div>
-        </div>
+    <div class="shortcut-grid">
+      <a href="create-talent.html" class="shortcut-card">
+        <div class="shortcut-icon">➕</div>
+        <div class="shortcut-title">Buat Akun Talent</div>
+        <div class="shortcut-desc">Tambah talent baru ke sistem</div>
       </a>
-      <a href="review.html" style="text-decoration:none">
-        <div class="panel" style="cursor:pointer;transition:border-color .2s;border:1px solid var(--border)" onmouseover="this.style.borderColor='var(--pink)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:2.2rem;margin-bottom:12px">📋</div>
-          <div style="font-weight:900;font-size:1rem;margin-bottom:4px">Review Talent</div>
-          <div style="font-size:.8rem;color:var(--muted);font-weight:600">Setujui atau tolak profil talent</div>
-          <div id="pending-badge" style="display:none;margin-top:10px;display:inline-block;background:rgba(255,184,0,.12);color:var(--yellow);border:1px solid rgba(255,184,0,.25);padding:2px 12px;border-radius:99px;font-size:.72rem;font-weight:800"></div>
-        </div>
+      <a href="review.html" class="shortcut-card">
+        <div class="shortcut-icon">📋</div>
+        <div class="shortcut-title">Review Talent</div>
+        <div class="shortcut-desc">Setujui atau tolak profil talent</div>
+        <div id="pending-badge" style="display:none;margin-top:10px;background:rgba(255,184,0,.12);color:var(--yellow);border:1px solid rgba(255,184,0,.25);padding:3px 14px;border-radius:99px;font-size:.72rem;font-weight:800;display:inline-block"></div>
       </a>
-      <a href="settings.html" style="text-decoration:none">
-        <div class="panel" style="cursor:pointer;transition:border-color .2s;border:1px solid var(--border)" onmouseover="this.style.borderColor='var(--pink)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:2.2rem;margin-bottom:12px">⚙️</div>
-          <div style="font-weight:900;font-size:1rem;margin-bottom:4px">Pengaturan</div>
-          <div style="font-size:.8rem;color:var(--muted);font-weight:600">Ubah password & info agency</div>
-        </div>
+      <a href="settings.html" class="shortcut-card">
+        <div class="shortcut-icon">⚙️</div>
+        <div class="shortcut-title">Pengaturan</div>
+        <div class="shortcut-desc">Ubah password, info agency & harga</div>
       </a>
     </div>
   </main>
@@ -101,7 +117,7 @@ async function doLogin() {
 
 function showDash() {
   document.getElementById('login-page').style.display = 'none';
-  document.getElementById('dashboard').style.display = 'flex';
+  document.getElementById('dashboard').style.display  = 'flex';
   loadPendingBadge();
 }
 
@@ -111,14 +127,14 @@ async function loadPendingBadge() {
     const { getFirestore, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js');
     const FIREBASE_CONFIG = {
       apiKey:'AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU',
-      authDomain:'callpay-28a28.firebaseapp.com',projectId:'callpay-28a28',
-      storageBucket:'callpay-28a28.firebasestorage.app',messagingSenderId:'44722427776',
+      authDomain:'callpay-28a28.firebaseapp.com', projectId:'callpay-28a28',
+      storageBucket:'callpay-28a28.firebasestorage.app', messagingSenderId:'44722427776',
       appId:'1:44722427776:web:29d1a297746cd83d685365'
     };
     const app = getApps().length ? getApps()[0] : initializeApp(FIREBASE_CONFIG);
     const db  = getFirestore(app);
     const snap = await getDocs(collection(db, 'talents'));
-    const pendingCount = snap.docs.filter(d => d.data().status === 'pending').length;
+    const pendingCount = snap.docs.filter(d => ['pending','edit-pending'].includes(d.data().status)).length;
     const badge = document.getElementById('pending-badge');
     if (pendingCount > 0 && badge) {
       badge.textContent = `${pendingCount} menunggu review`;
@@ -135,10 +151,7 @@ document.getElementById('logout-btn').onclick = () => {
   document.getElementById('login-page').style.display = 'flex';
   document.getElementById('p').value = '';
 };
-document.getElementById('back-web').onclick = () => {
-  if(confirm('Kembali ke website?\nKamu akan logout.')) { setOwnerLogin(false); window.location.href='../index.html'; }
-  return false;
-};
+document.getElementById('back-web').addEventListener('click', (e) => { e.preventDefault(); window.open('../index.html','_blank'); });
 
 document.addEventListener('DOMContentLoaded', async () => {
   await DB.getSettingsAsync();
