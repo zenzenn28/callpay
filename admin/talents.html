@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="admin.css">
   <style>
-    .talent-row{display:grid;grid-template-columns:48px 1fr 100px 120px 150px 24px;align-items:center;gap:16px;padding:14px 18px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);margin-bottom:10px;transition:all .2s;cursor:pointer;}
+    .talent-row{display:grid;grid-template-columns:48px 1fr 100px 24px;align-items:center;gap:16px;padding:14px 18px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);margin-bottom:10px;transition:all .2s;cursor:pointer;}
     .talent-row:hover{border-color:var(--border-pk);background:var(--surface2)}
     .talent-row img{width:48px;height:48px;border-radius:10px;object-fit:cover;object-position:top}
     .tr-name{font-weight:900;font-size:.95rem;margin-bottom:3px}
@@ -24,7 +24,7 @@
     .tr-point{text-align:center}
     .tr-point-val{font-weight:900;font-size:1rem;color:#a78bfa}
     .tr-point-lbl{font-size:.7rem;color:var(--muted);font-weight:700;margin-top:1px}
-    @media(max-width:768px){.talent-row{grid-template-columns:44px 1fr auto!important;gap:10px}.tr-stats:last-of-type{display:none}.tr-point{display:none}}
+    @media(max-width:768px){.talent-row{grid-template-columns:44px 1fr auto!important;gap:10px}}
   </style>
 <script>
 function toggleSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;const open=sb.classList.toggle('open');ov.classList.toggle('open',open);btn.textContent=open?'✕':'☰';}
@@ -69,7 +69,7 @@ import { getFirestore, collection, onSnapshot } from 'https://www.gstatic.com/fi
 const _app = getApps().length ? getApps()[0] : initializeApp({apiKey:'AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU',authDomain:'callpay-28a28.firebaseapp.com',projectId:'callpay-28a28',storageBucket:'callpay-28a28.firebasestorage.app',messagingSenderId:'44722427776',appId:'1:44722427776:web:29d1a297746cd83d685365'});
 const _db = getFirestore(_app);
 
-let allOrders=[], filt='all', firestoreMap={};
+let filt='all', firestoreMap={};
 
 document.getElementById('logout-btn').onclick=()=>{sessionStorage.removeItem('cp_admin_v2'); window.location.href='index.html';};
 document.getElementById('back-web').addEventListener('click', (e) => { e.preventDefault(); window.open('../index.html','_blank'); });
@@ -82,55 +82,60 @@ window.setFilt=(v,el)=>{
 };
 
 function buildCombined() {
-  const result = TALENTS.map(t => {
-    const fsData = firestoreMap[t.name.toLowerCase()];
-    if (fsData) {
-      return { ...t, ...fsData, id: t.id, name: fsData.name || t.name };
-    }
-    return t;
+  const result = [];
+  const seen = new Set(); // track by docId
+
+  // 1. Mulai dari TALENTS hardcode sebagai base
+  TALENTS.forEach(t => {
+    const docId = t.name.toLowerCase();
+    const fsData = firestoreMap[docId] || {};
+    seen.add(docId);
+    result.push({ ...t, ...fsData, id: t.id, _docId: docId,
+      name: fsData.name || t.name,
+      gender: fsData.gender || t.gender,
+      age: fsData.age || t.age,
+      services: (fsData.services && fsData.services.length) ? fsData.services : t.services,
+      img: fsData.img || t.img,
+    });
   });
-  const hardcodeNames = new Set(TALENTS.map(t => t.name.toLowerCase()));
+
+  // 2. Tambah talent BARU dari Firestore yang approved & belum ada di hardcode
   Object.entries(firestoreMap).forEach(([docId, data]) => {
-    if (!hardcodeNames.has(docId) && (data.status === 'approved') && data.name) {
-      result.push({ id: docId, ...data });
+    if (!seen.has(docId) && data.status === 'approved' && data.name) {
+      seen.add(docId);
+      result.push({ id: docId, _docId: docId, ...data });
     }
   });
+
   return result.filter(t => t.name);
 }
 
 function render(){
-  const cfg = DB.getSettings();
-  const cut = cfg.agencyCut / 100;
   const combined = buildCombined();
   let list = filt === 'all' ? combined : combined.filter(t => t.gender === filt);
-  const stats = {};
-  combined.forEach(t => { stats[t.name] = { count:0, gross:0 }; });
-  allOrders.forEach(o => {
-    if (stats[o.talentName]) {
-      stats[o.talentName].count++;
-      if (o.status === 'selesai') stats[o.talentName].gross += (o.price||0);
-    }
+  // Sort by point tertinggi
+  list = [...list].sort((a,b) => {
+    const pa = getPoints(a);
+    const pb = getPoints(b);
+    return pb - pa;
   });
-  list = [...list].sort((a,b) => (stats[b.name]?.count||0) - (stats[a.name]?.count||0));
   if (!list.length) { document.getElementById('talent-list').innerHTML='<p style="color:var(--muted)">Belum ada talent aktif.</p>'; return; }
   document.getElementById('talent-list').innerHTML = list.map(t => {
-    const st  = stats[t.name] || { count:0, gross:0 };
-    const net = Math.round(st.gross * (1 - cut));
-    const img = t.img || '';
-    // Ambil point dari firestoreMap, default 100
-    const fsKey = typeof t.id === 'number' ? t.name.toLowerCase() : String(t.id);
-    const fsData = firestoreMap[fsKey] || firestoreMap[t.name.toLowerCase()] || {};
-    const points = fsData.points !== undefined ? fsData.points : 100;
-    return `<div class="talent-row" onclick="window.location.href='talent-detail.html?id=${t.id}'">
+    const img    = t.img || '';
+    const points = getPoints(t);
+    return `<div class="talent-row" onclick="window.location.href='talent-detail.html?id=${t._docId || t.id}'">
       <img src="${img}" alt="${t.name}" onerror="this.style.display='none'">
       <div><div class="tr-name">${t.name} <span class="gender-badge ${t.gender==='female'?'gb-f':'gb-m'}">${t.gender==='female'?'Wanita':'Pria'}</span></div>
       <div class="tr-meta">Umur ${t.age||'-'} thn · ${(t.services||[]).join(', ')||'-'}</div></div>
       <div class="tr-point"><div class="tr-point-val">⭐ ${points}</div><div class="tr-point-lbl">Point</div></div>
-      <div class="tr-stats"><div class="tr-stat-val">${st.count}</div><div class="tr-stat-lbl">Total Order</div></div>
-      <div class="tr-stats"><div class="tr-stat-val green">${DB.formatRp(net)}</div><div class="tr-stat-lbl">Pendapatan</div></div>
       <div class="tr-arrow">›</div>
     </div>`;
   }).join('');
+}
+
+function getPoints(t) {
+  const fsData = firestoreMap[t._docId || t.id] || firestoreMap[String(t.id)] || {};
+  return fsData.points !== undefined ? fsData.points : 100;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -141,7 +146,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     snap.forEach(d => { firestoreMap[d.id] = d.data(); });
     render();
   });
-  DB.onOrdersChange(orders => { allOrders=orders; render(); });
 
   document.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', () => { if(window.innerWidth<=768) closeSidebar(); }));
 });
