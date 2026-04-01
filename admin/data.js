@@ -40,14 +40,20 @@ const SESSION_KEY = 'cp_admin';
 const DB = {
 
   // ── SESSION ───────────────────────────────────────────────
-  isLoggedIn() { return localStorage.getItem(SESSION_KEY) === '1'; },
-  setLogin(v)  { v ? localStorage.setItem(SESSION_KEY,'1') : localStorage.removeItem(SESSION_KEY); },
+  isLoggedIn()  { return !!localStorage.getItem(SESSION_KEY); },
+  isOwner()     { return localStorage.getItem(SESSION_KEY) === 'owner'; },
+  isAdmin()     { return localStorage.getItem(SESSION_KEY) === 'admin'; },
+  setLogin(v, role) {
+    if (v && role) localStorage.setItem(SESSION_KEY, role);
+    else localStorage.removeItem(SESSION_KEY);
+  },
 
   // ── DEFAULT SETTINGS ──────────────────────────────────────
   defaultSettings() {
     return {
       username    : 'admin',
       password    : 'callpay2021',
+      ownerPassword: 'owner2021',
       waNumber    : '62895400709371',
       agencyName  : 'CallPay Agency',
       instagram   : '@callpay.id',
@@ -278,5 +284,8 @@ const DUR_LABEL = {30:'30 menit', 60:'60 menit', 90:'90 menit', 120:'2 jam', 180
 function requireAuth() {
   if (!DB.isLoggedIn()) window.location.href = 'index.html';
 }
+function requireOwner() {
+  if (!DB.isOwner()) window.location.href = 'index.html';
+}
 
-export { DB, TALENTS, PRICES, DUR_LABEL, requireAuth };
+export { DB, TALENTS, PRICES, DUR_LABEL, requireAuth, requireOwner };

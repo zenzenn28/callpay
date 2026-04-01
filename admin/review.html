@@ -62,16 +62,16 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
   <div class="mobile-topbar"><span class="mobile-logo">CallPay</span><button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button></div>
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
   <aside class="sidebar">
-    <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">Admin Panel</div></div>
+    <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub" id="sidebar-role-label">Admin Panel</div></div>
     <nav class="sidebar-nav">
-      <a href="index.html"         class="nav-item"><span class="nav-icon">📊</span>Dashboard</a>
-      <a href="orders.html"        class="nav-item"><span class="nav-icon">📦</span>Order</a>
-      <a href="unassigned.html"    class="nav-item"><span class="nav-icon">🎯</span>Assign Talent</a>
+      <a href="index.html" class="nav-item" id="nav-dashboard"><span class="nav-icon">📊</span>Dashboard</a>
+      <a href="orders.html" class="nav-item" id="nav-orders"><span class="nav-icon">📦</span>Order</a>
+      <a href="unassigned.html" class="nav-item" id="nav-assign"><span class="nav-icon">🎯</span>Assign Talent</a>
       <a href="talents.html"       class="nav-item"><span class="nav-icon">👥</span>Talent</a>
       <a href="status.html"        class="nav-item"><span class="nav-icon">🟢</span>Status Talent</a>
-      <a href="create-talent.html" class="nav-item"><span class="nav-icon">➕</span>Buat Akun Talent</a>
+      <a href="create-talent.html" class="nav-item" id="nav-create"><span class="nav-icon">➕</span>Buat Akun Talent</a>
       <a href="review.html"        class="nav-item active"><span class="nav-icon">📋</span>Review Talent</a>
-      <a href="settings.html"      class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
+      <a href="settings.html" class="nav-item" id="nav-settings"><span class="nav-icon">⚙️</span>Pengaturan</a>
       <a href="../index.html"      class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" id="logout-btn">Logout →</button></div>
@@ -98,7 +98,7 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
 </div>
 
 <script type="module">
-import { DB } from './data.js';
+import { DB, requireOwner } from './data.js';
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
 import { getFirestore, collection, onSnapshot, doc, updateDoc, setDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 
@@ -313,7 +313,7 @@ function renderTalentCard(t) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!DB.isLoggedIn()) { window.location.href = 'index.html'; return; }
+  if (!DB.isOwner()) { window.location.href = 'index.html'; return; }
 
   // Listen talents
   onSnapshot(collection(_db, 'talents'), snap => {
@@ -332,6 +332,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     render();
   });
 
+    // ── SIDEBAR ROLE ─────────────────────────────────────────
+  (function applySidebarRole() {
+    if (!DB.isOwner()) {
+      ["nav-orders","nav-assign","nav-create","nav-review","nav-settings","nav-dashboard"].forEach(id=>{
+        const el = document.getElementById(id); if(el) el.style.display="none";
+      });
+    }
+    const lbl = document.getElementById("sidebar-role-label");
+    if (lbl) lbl.textContent = DB.isOwner() ? "Owner Panel" : "Admin Panel";
+  })();
   document.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', () => { if(window.innerWidth<=768) closeSidebar(); }));
 });
 </script>

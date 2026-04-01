@@ -17,15 +17,15 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
   <div class="mobile-topbar"><span class="mobile-logo">CallPay</span><button class="hamburger" onclick="toggleSidebar()" id="hamburger-btn">☰</button></div>
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
   <aside class="sidebar">
-    <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">Admin Panel</div></div>
+    <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub" id="sidebar-role-label">Admin Panel</div></div>
     <nav class="sidebar-nav">
       <a href="index.html"      class="nav-item"><span class="nav-icon">📊</span>Dashboard</a>
-      <a href="orders.html"     class="nav-item"><span class="nav-icon">📦</span>Order</a>
-      <a href="unassigned.html" class="nav-item"><span class="nav-icon">🎯</span>Assign Talent</a>
+      <a href="orders.html" class="nav-item" id="nav-orders"><span class="nav-icon">📦</span>Order</a>
+      <a href="unassigned.html" class="nav-item" id="nav-assign"><span class="nav-icon">🎯</span>Assign Talent</a>
       <a href="status.html"     class="nav-item"><span class="nav-icon">🟢</span>Status Talent</a>
       <a href="talents.html"    class="nav-item"><span class="nav-icon">👥</span>Talent</a>
-      <a href="create-talent.html" class="nav-item"><span class="nav-icon">➕</span>Buat Akun Talent</a>
-      <a href="review.html"        class="nav-item"><span class="nav-icon">📋</span>Review Talent</a>
+      <a href="create-talent.html" class="nav-item" id="nav-create"><span class="nav-icon">➕</span>Buat Akun Talent</a>
+      <a href="review.html" class="nav-item" id="nav-review"><span class="nav-icon">📋</span>Review Talent</a>
       <a href="settings.html"   class="nav-item active"><span class="nav-icon">⚙️</span>Pengaturan</a>
       <a href="../index.html"   class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
     </nav>
@@ -48,13 +48,23 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
 
     <div class="settings-section">
       <h3>🔐 Kredensial Admin</h3>
-      <p class="sec-desc">Ubah username dan password login.</p>
+      <p class="sec-desc">Ubah username dan password login <b>Admin</b> (akses terbatas: Talent & Status Talent).</p>
       <div class="form-grid">
         <div class="form-group"><label>Username Baru</label><input type="text" id="s-user" placeholder="admin"></div>
         <div class="form-group"><label>Password Baru</label><input type="password" id="s-pass" placeholder="••••••••"></div>
         <div class="form-group"><label>Konfirmasi Password</label><input type="password" id="s-pass2" placeholder="••••••••"></div>
       </div>
-      <div style="margin-top:18px"><button class="btn btn-pink" id="save-cred">🔒 Ubah Kredensial</button></div>
+      <div style="margin-top:18px"><button class="btn btn-pink" id="save-cred">🔒 Ubah Kredensial Admin</button></div>
+    </div>
+
+    <div class="settings-section">
+      <h3>👑 Password Owner</h3>
+      <p class="sec-desc">Password <b>Owner</b> memberikan akses penuh ke semua fitur admin panel.</p>
+      <div class="form-grid">
+        <div class="form-group"><label>Password Owner Baru</label><input type="password" id="s-owner-pass" placeholder="••••••••"></div>
+        <div class="form-group"><label>Konfirmasi Password Owner</label><input type="password" id="s-owner-pass2" placeholder="••••••••"></div>
+      </div>
+      <div style="margin-top:18px"><button class="btn btn-pink" id="save-owner-cred">👑 Ubah Password Owner</button></div>
     </div>
 
     <div class="settings-section danger-zone">
@@ -88,7 +98,7 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { DB } from './data.js';
+import { DB, requireOwner } from './data.js';
 
 function toast(msg,dur=2800){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 
@@ -123,6 +133,18 @@ document.getElementById('save-cred').onclick=async()=>{
   setTimeout(()=>{DB.setLogin(false);window.location.href='index.html';},1800);
 };
 
+document.getElementById('save-owner-cred').onclick=async()=>{
+  const p=document.getElementById('s-owner-pass').value;
+  const p2=document.getElementById('s-owner-pass2').value;
+  if(!p){toast('❌ Password owner tidak boleh kosong');return;}
+  if(p!==p2){toast('❌ Password tidak cocok');return;}
+  if(p.length<6){toast('❌ Password minimal 6 karakter');return;}
+  const cfg=DB.getSettings();
+  cfg.ownerPassword=p;
+  await DB.saveSettings(cfg);
+  toast('✅ Password owner diperbarui!');
+};
+
 document.getElementById('del-all-btn').onclick=async()=>{
   const orders=await DB.getOrders();
   document.getElementById('del-count').textContent=orders.length;
@@ -138,13 +160,23 @@ document.getElementById('del-confirm').onclick=async()=>{
 };
 
 document.addEventListener('DOMContentLoaded',async()=>{
-  if(!DB.isLoggedIn()){window.location.href='index.html';return;}
+  if(!DB.isOwner()){window.location.href='index.html';return;}
   const cfg=await DB.getSettingsAsync();
   document.getElementById('s-name').value=cfg.agencyName||'';
   document.getElementById('s-wa').value=cfg.waNumber||'';
   document.getElementById('s-ig').value=cfg.instagram||'';
   document.getElementById('s-cut').value=cfg.agencyCut||40;
   document.getElementById('s-user').value=cfg.username||'';
+    // ── SIDEBAR ROLE ─────────────────────────────────────────
+  (function applySidebarRole() {
+    if (!DB.isOwner()) {
+      ["nav-orders","nav-assign","nav-create","nav-review","nav-settings","nav-dashboard"].forEach(id=>{
+        const el = document.getElementById(id); if(el) el.style.display="none";
+      });
+    }
+    const lbl = document.getElementById("sidebar-role-label");
+    if (lbl) lbl.textContent = DB.isOwner() ? "Owner Panel" : "Admin Panel";
+  })();
   document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{if(window.innerWidth<=768)closeSidebar();}));
 });
 </script>

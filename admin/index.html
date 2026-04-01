@@ -56,14 +56,14 @@ function closeSidebar(){
   <aside class="sidebar">
     <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">Admin Panel</div></div>
     <nav class="sidebar-nav">
-      <a href="index.html"      class="nav-item active"><span class="nav-icon">📊</span>Dashboard</a>
-      <a href="orders.html"     class="nav-item"><span class="nav-icon">📦</span>Order</a>
-      <a href="unassigned.html" class="nav-item"><span class="nav-icon">🎯</span>Assign Talent</a>
+      <a href="index.html"      class="nav-item active" id="nav-dashboard"><span class="nav-icon">📊</span>Dashboard</a>
+      <a href="orders.html"     class="nav-item" id="nav-orders"><span class="nav-icon">📦</span>Order</a>
+      <a href="unassigned.html" class="nav-item" id="nav-assign"><span class="nav-icon">🎯</span>Assign Talent</a>
       <a href="status.html"     class="nav-item"><span class="nav-icon">🟢</span>Status Talent</a>
       <a href="talents.html"    class="nav-item"><span class="nav-icon">👥</span>Talent</a>
-      <a href="create-talent.html" class="nav-item"><span class="nav-icon">➕</span>Buat Akun Talent</a>
-      <a href="review.html"        class="nav-item"><span class="nav-icon">📋</span>Review Talent</a>
-      <a href="settings.html"   class="nav-item"><span class="nav-icon">⚙️</span>Pengaturan</a>
+      <a href="create-talent.html" class="nav-item" id="nav-create"><span class="nav-icon">➕</span>Buat Akun Talent</a>
+      <a href="review.html"        class="nav-item" id="nav-review"><span class="nav-icon">📋</span>Review Talent</a>
+      <a href="settings.html"   class="nav-item" id="nav-settings"><span class="nav-icon">⚙️</span>Pengaturan</a>
       <a href="../index.html"   class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" id="logout-btn">Logout →</button></div>
@@ -93,22 +93,51 @@ function closeSidebar(){
 <script type="module">
 import { DB } from './data.js';
 
+// Halaman yang hanya bisa diakses owner
+const OWNER_ONLY_PAGES = ['orders.html','unassigned.html','create-talent.html','review.html','settings.html','index.html'];
+
 async function doLogin() {
   const cfg = await DB.getSettingsAsync();
   const u=document.getElementById('u').value.trim(), p=document.getElementById('p').value;
-  if(u===cfg.username&&p===cfg.password){ DB.setLogin(true); document.getElementById('err').style.display='none'; showDash(); }
-  else { document.getElementById('err').style.display='block'; document.getElementById('p').value=''; }
+  document.getElementById('err').style.display='none';
+  if (p === cfg.ownerPassword) {
+    // Login sebagai Owner — akses penuh
+    DB.setLogin(true, 'owner');
+    showDash('owner');
+  } else if (u === cfg.username && p === cfg.password) {
+    // Login sebagai Admin — hanya Talent & Status Talent
+    DB.setLogin(true, 'admin');
+    showDash('admin');
+  } else {
+    document.getElementById('err').style.display='block';
+    document.getElementById('p').value='';
+  }
 }
 document.getElementById('login-btn').onclick=doLogin;
 ['u','p'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
 document.getElementById('logout-btn').onclick=()=>{ DB.setLogin(false); document.getElementById('dashboard').style.display='none'; document.getElementById('login-page').style.display='flex'; };
 document.getElementById('back-web').onclick=()=>{ if(confirm('Kembali ke website?\nSession admin akan logout.')){ DB.setLogin(false); window.location.href='../index.html'; } return false; };
 
-function showDash(){
+function showDash(role){
   document.getElementById('login-page').style.display='none';
   document.getElementById('dashboard').style.display='flex';
-  // Realtime listener
+  // Tampilkan/sembunyikan menu sesuai role
+  applySidebarRole(role || (DB.isOwner() ? 'owner' : 'admin'));
   DB.onOrdersChange(orders=>renderDash(orders));
+}
+
+function applySidebarRole(role) {
+  // Elemen yang hanya muncul untuk owner
+  const ownerOnly = ['nav-orders','nav-assign','nav-create','nav-review','nav-settings','nav-dashboard'];
+  if (role === 'admin') {
+    ownerOnly.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+  }
+  // Tampilkan label role di sidebar
+  const sub = document.querySelector('.sidebar-logo-sub');
+  if (sub) sub.textContent = role === 'owner' ? 'Owner Panel' : 'Admin Panel';
 }
 
 function renderDash(orders){
