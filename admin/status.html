@@ -35,6 +35,57 @@
     .ts-toggle.set-offline:hover{background:rgba(255,92,92,.08)}
     .filter-wrap{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
     @media(max-width:768px){.talent-status-grid{grid-template-columns:1fr}}
+
+    /* Popup konfirmasi offline */
+    .offline-modal-bg{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px}
+    .offline-modal-bg.open{display:flex}
+    .offline-modal{background:linear-gradient(145deg,#16162A,#1E1E35);border:1px solid rgba(255,92,92,.2);border-radius:24px;padding:32px 28px;width:100%;max-width:380px;animation:fadeScaleIn .22s ease;box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04)}
+    @keyframes fadeScaleIn{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+
+    /* Header */
+    .om-icon{width:48px;height:48px;border-radius:14px;background:rgba(255,92,92,.12);border:1px solid rgba(255,92,92,.25);display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:16px}
+    .offline-modal-title{font-size:1.1rem;font-weight:900;margin-bottom:6px;color:var(--text)}
+    .offline-modal-desc{font-size:.82rem;color:var(--muted);font-weight:600;line-height:1.65;margin-bottom:20px}
+
+    /* Talent strip */
+    .offline-modal-talent{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:12px 14px;margin-bottom:22px}
+    .offline-modal-talent img{width:44px;height:44px;border-radius:10px;object-fit:cover;object-position:top;flex-shrink:0}
+    .offline-modal-talent-ph{width:44px;height:44px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+    .offline-modal-talent-name{font-weight:900;font-size:.95rem}
+    .offline-modal-talent-pts{font-size:.75rem;color:#a78bfa;font-weight:700;margin-top:3px;display:flex;align-items:center;gap:4px}
+
+    /* Buttons */
+    .offline-btn-wrap{display:flex;flex-direction:column;gap:10px}
+    .btn-deduct{
+      background:linear-gradient(135deg,rgba(255,92,92,.15),rgba(255,92,92,.08));
+      color:#ff7b7b;border:1px solid rgba(255,92,92,.35);
+      padding:14px 16px;border-radius:14px;font-weight:800;font-size:.88rem;
+      cursor:pointer;transition:all .2s;text-align:left;width:100%;
+      display:flex;align-items:center;gap:12px;
+    }
+    .btn-deduct:hover{background:linear-gradient(135deg,rgba(255,92,92,.25),rgba(255,92,92,.15));border-color:rgba(255,92,92,.6);transform:translateY(-1px)}
+    .btn-deduct-icon{width:36px;height:36px;border-radius:10px;background:rgba(255,92,92,.15);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+    .btn-deduct-text{flex:1}
+    .btn-deduct-title{font-size:.88rem;font-weight:900;margin-bottom:2px}
+    .btn-deduct-sub{font-size:.72rem;font-weight:600;opacity:.7}
+
+    .btn-no-deduct{
+      background:rgba(255,255,255,.04);
+      color:var(--text);border:1px solid rgba(255,255,255,.08);
+      padding:14px 16px;border-radius:14px;font-weight:800;font-size:.88rem;
+      cursor:pointer;transition:all .2s;text-align:left;width:100%;
+      display:flex;align-items:center;gap:12px;
+    }
+    .btn-no-deduct:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);transform:translateY(-1px)}
+    .btn-no-deduct-icon{width:36px;height:36px;border-radius:10px;background:rgba(61,214,140,.1);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+
+    .btn-cancel-offline{background:transparent;color:var(--muted);border:none;padding:10px;font-size:.8rem;font-weight:700;cursor:pointer;width:100%;margin-top:2px;border-radius:10px;transition:all .2s}
+    .btn-cancel-offline:hover{background:rgba(255,255,255,.04);color:var(--text)}
+    @media(max-width:480px){
+      .offline-modal{padding:24px 18px;border-radius:20px}
+      .btn-deduct,.btn-no-deduct{padding:12px 14px}
+      .offline-modal-bg{padding:14px}
+    }
   </style>
 <script>
 function toggleSidebar(){const sb=document.querySelector('.sidebar'),ov=document.getElementById('sidebar-overlay'),btn=document.getElementById('hamburger-btn');if(!sb||!ov||!btn)return;const open=sb.classList.toggle('open');ov.classList.toggle('open',open);btn.textContent=open?'✕':'☰';}
@@ -57,6 +108,7 @@ if (sessionStorage.getItem('cp_admin_v2') !== '1') {
         <nav class="sidebar-nav">
       <a href="talents.html" class="nav-item "><span class="nav-icon">⭐</span>Point Talent</a>
       <a href="status.html"  class="nav-item active"><span class="nav-icon">🟢</span>Status Talent</a>
+      <a href="clear-history.html" class="nav-item"><span class="nav-icon">🗑️</span>Hapus Riwayat Point</a>
       <a href="../index.html" class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" id="logout-btn">Logout →</button></div>
@@ -77,10 +129,37 @@ if (sessionStorage.getItem('cp_admin_v2') !== '1') {
   </main>
 </div>
 
+<!-- OFFLINE CONFIRMATION MODAL -->
+<div class="offline-modal-bg" id="offline-modal">
+  <div class="offline-modal">
+    <div class="om-icon">🔴</div>
+    <div class="offline-modal-title">Set Talent Offline</div>
+    <div class="offline-modal-desc">Talent akan di-set <strong style="color:var(--red)">OFFLINE</strong>. Apakah perlu dikurangi pointnya karena tidak membalas chat admin?</div>
+    <div class="offline-modal-talent" id="offline-talent-info"></div>
+    <div class="offline-btn-wrap">
+      <button class="btn-deduct" onclick="confirmOffline(true)">
+        <div class="btn-deduct-icon">⭐</div>
+        <div class="btn-deduct-text">
+          <div class="btn-deduct-title">Kurangi 25 Point</div>
+          <div class="btn-deduct-sub">Tidak membalas chat admin dalam 5 menit</div>
+        </div>
+      </button>
+      <button class="btn-no-deduct" onclick="confirmOffline(false)">
+        <div class="btn-no-deduct-icon">✅</div>
+        <div class="btn-deduct-text">
+          <div class="btn-deduct-title">Set Offline Saja</div>
+          <div class="btn-deduct-sub" style="color:var(--muted)">Tidak ada pengurangan point</div>
+        </div>
+      </button>
+      <button class="btn-cancel-offline" onclick="closeOfflineModal()">← Batal</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { DB, TALENTS } from './data.js';
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
-import { getFirestore, doc, setDoc, onSnapshot, collection } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+import { getFirestore, doc, setDoc, getDoc, addDoc, onSnapshot, collection, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 
 const _app = getApps().length ? getApps()[0] : initializeApp({apiKey:'AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU',authDomain:'callpay-28a28.firebaseapp.com',projectId:'callpay-28a28',storageBucket:'callpay-28a28.firebasestorage.app',messagingSenderId:'44722427776',appId:'1:44722427776:web:29d1a297746cd83d685365'});
 const _db = getFirestore(_app);
@@ -97,9 +176,58 @@ window.setFilt = (v, el) => {
   render();
 };
 
+let _pendingOfflineDocId = null;
+
 window.toggleTalentStatus = async (docId) => {
   const current = firestoreMap[docId]?.online || false;
-  await setDoc(doc(_db, 'talents', docId), { online: !current }, { merge: true });
+  if (current) {
+    // Sedang online → mau offline → tampilkan popup
+    _pendingOfflineDocId = docId;
+    const t = { ...(firestoreMap[docId] || {}), _docId: docId };
+    const pts = t.points !== undefined ? t.points : 100;
+    document.getElementById('offline-talent-info').innerHTML = `
+      ${t.img ? `<img src="${t.img}" alt="${t.name}">` : `<div class="offline-modal-talent-ph">👤</div>`}
+      <div>
+        <div class="offline-modal-talent-name">${t.name || docId}</div>
+        <div class="offline-modal-talent-pts">⭐ ${pts} point saat ini</div>
+      </div>`;
+    document.getElementById('offline-modal').classList.add('open');
+  } else {
+    // Sedang offline → langsung online, tidak perlu popup
+    await setDoc(doc(_db, 'talents', docId), { online: true }, { merge: true });
+  }
+};
+
+window.confirmOffline = async (deductPoint) => {
+  if (!_pendingOfflineDocId) return;
+  const docId = _pendingOfflineDocId;
+  closeOfflineModal();
+
+  // Set offline
+  await setDoc(doc(_db, 'talents', docId), { online: false }, { merge: true });
+
+  // Kurangi point kalau dipilih
+  if (deductPoint) {
+    try {
+      const snap = await getDoc(doc(_db, 'talents', docId));
+      const data = snap.exists() ? snap.data() : {};
+      const current = data.points !== undefined ? data.points : 100;
+      const newVal  = Math.max(0, current - 25);
+      await setDoc(doc(_db, 'talents', docId), { points: newVal }, { merge: true });
+      await addDoc(collection(_db, 'talents', docId, 'point_history'), {
+        delta    : -25,
+        reason   : 'Tidak membalas chat admin dalam 5 menit (Admin)',
+        total    : newVal,
+        type     : 'admin',
+        createdAt: serverTimestamp(),
+      });
+    } catch(e) { console.error('Gagal kurangi point:', e); }
+  }
+};
+
+window.closeOfflineModal = () => {
+  document.getElementById('offline-modal').classList.remove('open');
+  _pendingOfflineDocId = null;
 };
 
 function buildCombined() {
@@ -169,6 +297,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', () => { if(window.innerWidth<=768) closeSidebar(); }));
+  document.getElementById('offline-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('offline-modal')) closeOfflineModal();
+  });
 });
 </script>
 </body>

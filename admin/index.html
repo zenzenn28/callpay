@@ -64,6 +64,7 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
     <nav class="sidebar-nav">
       <a href="talents.html" class="nav-item"><span class="nav-icon">⭐</span>Point Talent</a>
       <a href="status.html"  class="nav-item"><span class="nav-icon">🟢</span>Status Talent</a>
+      <a href="clear-history.html" class="nav-item"><span class="nav-icon">🗑️</span>Hapus Riwayat Point</a>
       <a href="../index.html" class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
     </nav>
     <div class="sidebar-footer"><button class="logout-btn" id="logout-btn">Logout →</button></div>
@@ -95,6 +96,7 @@ function closeSidebar(){const sb=document.querySelector('.sidebar'),ov=document.
 <div class="toast" id="toast"></div>
 <script type="module">
 import { DB } from './data.js';
+
 
 const SESSION_KEY = 'cp_admin_v2';
 
@@ -136,6 +138,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (isAdminLoggedIn()) showDash();
   document.querySelectorAll('.nav-item').forEach(a => a.addEventListener('click', () => { if(window.innerWidth<=768) closeSidebar(); }));
 });
+
 </script>
 </body>
 </html>
