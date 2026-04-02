@@ -151,7 +151,7 @@ window.updateModalPrice = function() {
   if (btn) btn.disabled = !(price && checked);
 };
 
-window.confirmViaWA = async function() {
+window.confirmViaWA = function() {
   const svcRaw   = document.getElementById('modal-service').value;
   const dur      = parseInt(document.getElementById('modal-duration').value);
   const note     = document.getElementById('modal-note').value.trim();
@@ -164,27 +164,8 @@ window.confirmViaWA = async function() {
     return;
   }
 
-  // Disable tombol sementara
-  const btn = document.getElementById('modal-wa-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Memproses...'; }
-
-  try {
-    // Simpan order ke Firestore
-    await DB.addOrder({
-      talentId   : String(activeTalent.id),
-      talentName : activeTalent.name,
-      service    : svcLabel,
-      duration   : dur,
-      price      : price,
-      note       : note,
-      orderType  : 'direct', // langsung pilih talent
-    });
-  } catch(e) {
-    console.warn('Gagal simpan order:', e);
-  }
-
-  // Buka WhatsApp
-  const adminFee = 3000;
+  // Buat URL WA dulu
+  const adminFee   = 3000;
   const totalPrice = price + adminFee;
   const msg = [
     `Halo CallPay! 👋`,
@@ -200,10 +181,22 @@ window.confirmViaWA = async function() {
   ].filter(l => l !== undefined).join('\n');
 
   const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
-  window.open(url, '_blank');
 
-  if (btn) { btn.disabled = false; btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20" fill="white"><path d="M24 4C13 4 4 13 4 24c0 3.6 1 7 2.7 9.9L4 44l10.4-2.7C17.2 43 20.5 44 24 44c11 0 20-9 20-20S35 4 24 4zm0 36c-3.1 0-6.1-.8-8.7-2.4l-.6-.4-6.2 1.6 1.7-6-.4-.6C8.8 30.1 8 27.1 8 24 8 15.2 15.2 8 24 8s16 7.2 16 16-7.2 16-16 16zm8.7-11.8c-.5-.2-2.8-1.4-3.2-1.5-.4-.2-.7-.2-1 .2-.3.4-1.2 1.5-1.4 1.8-.3.3-.5.4-1 .1-.5-.2-2-.7-3.8-2.3-1.4-1.2-2.3-2.8-2.6-3.2-.3-.5 0-.7.2-1 .2-.2.5-.5.7-.8.2-.3.3-.5.4-.8.1-.3 0-.6-.1-.8-.1-.2-1-2.5-1.4-3.4-.4-.9-.8-.8-1-.8h-.9c-.3 0-.8.1-1.2.6-.4.5-1.6 1.6-1.6 3.8s1.7 4.4 1.9 4.7c.2.3 3.3 5.1 8.1 7.1 1.1.5 2 .8 2.7 1 1.1.3 2.2.3 3 .2.9-.1 2.8-1.1 3.2-2.2.4-1.1.4-2 .3-2.2-.2-.3-.5-.4-1-.6z"/></svg> Konfirmasi via WhatsApp`; }
+  // Buka WA langsung (synchronous) — penting untuk iOS Safari
+  // iOS memblokir window.open setelah await, jadi buka dulu baru simpan
+  location.href = url;
+
+  // Simpan order di background (tidak blocking)
   closeModal();
+  DB.addOrder({
+    talentId   : String(activeTalent.id),
+    talentName : activeTalent.name,
+    service    : svcLabel,
+    duration   : dur,
+    price      : price,
+    note       : note,
+    orderType  : 'direct',
+  }).catch(e => console.warn('Gagal simpan order:', e));
 };
 
 // ============================================================
