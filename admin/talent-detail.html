@@ -26,7 +26,7 @@ if (sessionStorage.getItem('cp_admin_v2') !== '1') {
   <aside class="sidebar">
     <div class="sidebar-logo"><div class="sidebar-logo-text">CallPay</div><div class="sidebar-logo-sub">Admin Panel</div></div>
         <nav class="sidebar-nav">
-      <a href="talents.html" class="nav-item active"><span class="nav-icon">👥</span>Talent</a>
+      <a href="talents.html" class="nav-item active"><span class="nav-icon">⭐</span>Point Talent</a>
       <a href="status.html"  class="nav-item"><span class="nav-icon">🟢</span>Status Talent</a>
       <a href="../index.html" class="nav-item" id="back-web"><span class="nav-icon">🌐</span>Lihat Website</a>
     </nav>
@@ -56,112 +56,15 @@ const _db = getFirestore(_fbApp);
 document.getElementById('logout-btn').onclick=()=>{sessionStorage.removeItem('cp_admin_v2'); window.location.href='index.html';};
 document.getElementById('back-web').addEventListener('click', (e) => { e.preventDefault(); window.open('../index.html','_blank'); });
 
-const CLOUDINARY_CLOUD = 'dnbjw43hp';
-const CLOUDINARY_PRESET = 'callpay_audio';
 
 let _talent = null;
-let _selectedFile = null;
 
-async function loadAudioStatus(talent) {
-  const snap = await getDoc(doc(_db, 'talents', talent._docId || String(talent.id)));
-  const audioUrl = snap.exists() ? snap.data().audio || '' : '';
-  const statusEl = document.getElementById('audio-status');
-  const deleteBtn = document.getElementById('delete-btn');
-  if (audioUrl) {
-    statusEl.innerHTML = `
-      <div style="display:flex;align-items:center;gap:12px;background:rgba(61,214,140,.06);border:1px solid rgba(61,214,140,.2);border-radius:10px;padding:12px 16px">
-        <span style="font-size:1.2rem">🎵</span>
-        <div style="flex:1;min-width:0">
-          <p style="font-size:.8rem;font-weight:700;color:var(--green);margin-bottom:4px">Audio tersedia</p>
-          <audio controls style="width:100%;height:32px" src="${audioUrl}"></audio>
-        </div>
-      </div>`;
-    deleteBtn.style.display = 'inline-flex';
-  } else {
-    statusEl.innerHTML = `<p style="font-size:.82rem;color:var(--muted);font-weight:600">⚠️ Belum ada sample suara untuk talent ini.</p>`;
-    deleteBtn.style.display = 'none';
-  }
-}
 
-window.handleAudioChange = function(input) {
-  _selectedFile = input.files[0] || null;
-  const btn = document.getElementById('upload-btn');
-  const label = document.getElementById('upload-label');
-  if (_selectedFile) {
-    label.querySelector('span').textContent = '✅ ' + _selectedFile.name;
-    btn.style.display = 'inline-flex';
-  } else {
-    label.querySelector('span').textContent = '📁 Pilih File Audio (MP3/WAV)';
-    btn.style.display = 'none';
-  }
-};
 
-window.uploadAudio = async function() {
-  if (!_selectedFile || !_talent) return;
-  const maxMB = 10;
-  if (_selectedFile.size > maxMB * 1024 * 1024) {
-    alert('File terlalu besar! Maksimal ' + maxMB + 'MB.'); return;
-  }
-  const progressWrap = document.getElementById('upload-progress');
-  const progressBar  = document.getElementById('progress-bar');
-  const progressText = document.getElementById('progress-text');
-  const uploadBtn    = document.getElementById('upload-btn');
-  progressWrap.style.display = 'block';
-  uploadBtn.disabled = true;
-  uploadBtn.textContent = 'Mengupload...';
 
-  const formData = new FormData();
-  formData.append('file', _selectedFile);
-  formData.append('upload_preset', CLOUDINARY_PRESET);
-  formData.append('resource_type', 'video'); // Cloudinary pakai 'video' untuk audio
 
-  try {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`);
-    xhr.upload.onprogress = e => {
-      if (e.lengthComputable) {
-        const pct = Math.round(e.loaded / e.total * 100);
-        progressBar.style.width = pct + '%';
-        progressText.textContent = `Mengupload... ${pct}%`;
-      }
-    };
-    xhr.onload = async () => {
-      if (xhr.status === 200) {
-        const res = JSON.parse(xhr.responseText);
-        const url = res.secure_url;
-        await setDoc(doc(_db, 'talents', _talent._docId || String(_talent.id)), { audio: url }, { merge: true });
-        progressText.textContent = '✅ Upload berhasil!';
-        progressBar.style.background = 'var(--green)';
-        uploadBtn.disabled = false;
-        uploadBtn.style.display = 'none';
-        document.getElementById('audio-file').value = '';
-        document.getElementById('upload-label').querySelector('span').textContent = '📁 Pilih File Audio (MP3/WAV)';
-        _selectedFile = null;
-        setTimeout(() => {
-          progressWrap.style.display = 'none';
-          progressBar.style.width = '0%';
-          progressBar.style.background = 'linear-gradient(90deg,#E8628A,#F9A8C9)';
-        }, 2500);
-        await loadAudioStatus(_talent);
-      } else {
-        throw new Error('Status ' + xhr.status);
-      }
-    };
-    xhr.onerror = () => { throw new Error('Network error'); };
-    xhr.send(formData);
-  } catch(err) {
-    alert('Upload gagal: ' + err.message);
-    progressWrap.style.display = 'none';
-    uploadBtn.disabled = false;
-    uploadBtn.textContent = 'Upload Audio';
-  }
-};
 
-window.deleteAudio = async function() {
-  if (!_talent || !confirm('Hapus audio ' + _talent.name + '?')) return;
-  await setDoc(doc(_db, 'talents', _talent._docId || String(_talent.id)), { audio: '' }, { merge: true });
-  await loadAudioStatus(_talent);
-};
+
 
 // ── POINT MANAGEMENT ──────────────────────────────────────
 let _currentPoints = 100;
@@ -331,27 +234,9 @@ document.addEventListener('DOMContentLoaded',async()=>{
       <div id="point-panel"></div>
     </div>
 
-    <div class="panel" style="margin-bottom:20px" id="audio-panel">
-      <h3>🎵 Sample Suara</h3>
-      <div id="audio-status" style="margin-bottom:14px"></div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <label class="upload-audio-label" id="upload-label">
-          <input type="file" id="audio-file" accept="audio/mp3,audio/mpeg,audio/wav,audio/ogg" style="display:none" onchange="handleAudioChange(this)">
-          <span>📁 Pilih File Audio (MP3/WAV)</span>
-        </label>
-        <button class="btn btn-pink" id="upload-btn" onclick="uploadAudio()" style="display:none">Upload Audio</button>
-        <button class="btn btn-outline" id="delete-btn" onclick="deleteAudio()" style="display:none;color:#ff5c5c;border-color:#ff5c5c">🗑 Hapus Audio</button>
-      </div>
-      <div id="upload-progress" style="display:none;margin-top:12px">
-        <div style="height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden">
-          <div id="progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#E8628A,#F9A8C9);border-radius:99px;transition:width .3s"></div>
-        </div>
-        <p id="progress-text" style="font-size:.75rem;color:var(--muted);margin-top:6px">Mengupload...</p>
-      </div>
-    </div>`;
+    `;
 
 
-  await loadAudioStatus(talent);
   await loadPoints(talent);
 
   document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{if(window.innerWidth<=768)closeSidebar();}));

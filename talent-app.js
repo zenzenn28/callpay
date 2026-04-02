@@ -32,7 +32,6 @@ let currentTalent    = null;
 let _docId           = null;
 let _uploadedAudioUrl = '';
 let _uploadedPhotoUrl = '';
-let _onlineTimer     = null; // interval 1 jam untuk +1 point
 
 // ── SESSION ───────────────────────────────────────────────
 function getSession() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)); } catch { return null; } }
@@ -93,7 +92,6 @@ function loadDashboard() {
   listenStatus();
   updateBanner();
   renderSettingsPanel();
-  checkDailyPenalty();
 }
 
 function updateBanner() {
@@ -175,67 +173,10 @@ window.closePointModal = function() {
 };
 
 // ── POINT SYSTEM OTOMATIS ─────────────────────────────────
-// +1 setiap 1 jam online (dijalankan setiap masuk online)
-function startOnlineTimer() {
-  stopOnlineTimer();
-  _onlineTimer = setInterval(async () => {
-    await addPointAuto(1, 'Online 1 jam ⏱️');
-  }, 60 * 60 * 1000); // 1 jam
-}
 
-function stopOnlineTimer() {
-  if (_onlineTimer) { clearInterval(_onlineTimer); _onlineTimer = null; }
-}
 
-// Cek penalty harian: -3 jika tidak online dan tidak ada orderan hari ini
-async function checkDailyPenalty() {
-  try {
-    const snap  = await getDoc(doc(db, 'talents', _docId));
-    if (!snap.exists()) return;
-    const data  = snap.data();
-    const today = new Date().toDateString();
-    const lastCheck = data._lastPenaltyCheck || '';
-    if (lastCheck === today) return; // sudah dicek hari ini
 
-    const wasOnline    = data._onlineTodayMinutes >= 60; // minimal 1 jam online
-    const hasOrderToday = await checkHasOrderToday();
 
-    if (!wasOnline && !hasOrderToday) {
-      await addPointAuto(-3, 'Tidak online & tidak ada orderan hari ini 📉');
-    }
-    // Reset counter harian
-    await setDoc(doc(db, 'talents', _docId), {
-      _lastPenaltyCheck: today,
-      _onlineTodayMinutes: 0,
-    }, { merge: true });
-  } catch(e) { console.warn('checkDailyPenalty error:', e); }
-}
-
-async function checkHasOrderToday() {
-  try {
-    const orders = await DB.getOrders();
-    const today  = new Date().toDateString();
-    const name   = currentTalent.name || _docId;
-    return orders.some(o => o.talentName === name && new Date(o.date).toDateString() === today);
-  } catch { return false; }
-}
-
-// Tambah/kurang point otomatis (sistem) + catat history
-async function addPointAuto(delta, reason) {
-  try {
-    const snap   = await getDoc(doc(db, 'talents', _docId));
-    const data   = snap.exists() ? snap.data() : {};
-    const current = data.points !== undefined ? data.points : 100;
-    const newVal  = Math.min(POINT_MAX, Math.max(0, current + delta));
-    if (newVal === current) return; // sudah maks atau 0
-    await setDoc(doc(db, 'talents', _docId), { points: newVal }, { merge: true });
-    await addDoc(collection(db, 'talents', _docId, 'point_history'), {
-      delta, reason, total: newVal,
-      type: 'auto',
-      createdAt: serverTimestamp(),
-    });
-  } catch(e) { console.warn('addPointAuto error:', e); }
-}
 
 // ── STATUS ────────────────────────────────────────────────
 function listenStatus() {
@@ -249,24 +190,7 @@ function listenStatus() {
     updatePointDisplay(data.points !== undefined ? data.points : 100);
     document.getElementById('t-avatar').textContent   = (data.name || _docId)[0].toUpperCase();
     document.getElementById('t-name-top').textContent = data.name || _docId;
-    // Start/stop timer online
-    if (online) { startOnlineTimer(); trackOnlineMinutes(); }
-    else { stopOnlineTimer(); }
   });
-}
-
-// Catat menit online hari ini (untuk cek penalty)
-let _onlineMinuteInterval = null;
-function trackOnlineMinutes() {
-  if (_onlineMinuteInterval) return;
-  _onlineMinuteInterval = setInterval(async () => {
-    const snap = await getDoc(doc(db, 'talents', _docId));
-    if (!snap.exists()) return;
-    const data = snap.data();
-    if (data.online === false) { clearInterval(_onlineMinuteInterval); _onlineMinuteInterval = null; return; }
-    const mins = (data._onlineTodayMinutes || 0) + 1;
-    await setDoc(doc(db, 'talents', _docId), { _onlineTodayMinutes: mins }, { merge: true });
-  }, 60 * 1000); // setiap 1 menit
 }
 
 function updateStatusUI(online) {
@@ -506,7 +430,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('t-user').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
   document.getElementById('t-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
   document.getElementById('t-logout-btn').onclick = () => {
-    stopOnlineTimer();
     clearSession(); currentTalent=null; _docId=null;
     const userEl = document.getElementById('t-user');
     const passEl = document.getElementById('t-pass');
