@@ -27,6 +27,18 @@ const SVC_KEY_TO_LABEL = {
   'temen-curhat' : 'Temen Curhat',
   'pacar-virtual': 'Pacar Virtual',
 };
+const SVC_LABEL_TO_KEY = {
+  'Temen Call'   : 'temen-call',
+  'Sleepcall'    : 'sleepcall',
+  'Temen Curhat' : 'temen-curhat',
+  'Pacar Virtual': 'pacar-virtual',
+};
+const SVC_ICON = {
+  'Temen Call'   : '📞',
+  'Sleepcall'    : '🌙',
+  'Temen Curhat' : '🫂',
+  'Pacar Virtual': '💕',
+};
 
 // ============================================================
 //  TALENT RENDER
@@ -107,7 +119,17 @@ window.openModal = function(id) {
   document.getElementById('modal-img').src           = activeTalent.img;
   document.getElementById('modal-tname').textContent = activeTalent.name;
   document.getElementById('modal-tmeta').textContent = `${activeTalent.age} tahun · Indonesia`;
-  document.getElementById('modal-service').value     = '';
+
+  // Generate opsi layanan sesuai services talent
+  const svcSel = document.getElementById('modal-service');
+  const services = activeTalent.services || [];
+  svcSel.innerHTML = '<option value="">— Pilih Layanan —</option>' +
+    services.map(svc => {
+      const key  = SVC_LABEL_TO_KEY[svc] || '';
+      const icon = SVC_ICON[svc] || '';
+      return key ? `<option value="${key}">${icon} ${svc}</option>` : '';
+    }).join('');
+
   document.getElementById('modal-duration').innerHTML = '<option value="">— Pilih Layanan Dulu —</option>';
   document.getElementById('modal-note').value        = '';
   const adminCheck = document.getElementById('admin-fee-check');

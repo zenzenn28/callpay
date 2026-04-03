@@ -248,7 +248,7 @@ function buildProfileForm(t, isSettingMode) {
     <h2 style="font-size:1.2rem;font-weight:900;margin-bottom:20px">${title}</h2>
     ${!isSettingMode && t.status==='rejected' && t.declineReason ? `<div style="background:rgba(255,92,92,.06);border:1px solid rgba(255,92,92,.2);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.82rem;color:var(--red);font-weight:700">❌ "${t.declineReason}"</div>` : ''}
     <div class="setup-section">
-      <div class="setup-label">📷 Foto Profil *</div>
+      <div class="setup-label">📷 Foto Profil ${t.img ? "(sudah ada, opsional ganti)" : "*"}</div>
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <div id="photo-preview" style="width:76px;height:76px;border-radius:12px;overflow:hidden;background:var(--surface2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:2rem">
           ${t.img ? `<img src="${t.img}" style="width:100%;height:100%;object-fit:cover">` : '👤'}
@@ -286,7 +286,7 @@ function buildProfileForm(t, isSettingMode) {
       </div>
     </div>
     <div class="setup-section">
-      <div class="setup-label">🎵 Sample Suara *</div>
+      <div class="setup-label">🎵 Sample Suara ${t.audio ? "(sudah ada, opsional ganti)" : "(opsional)"}</div>
       ${t.audio ? `<audio controls style="width:100%;height:32px;margin-bottom:8px" src="${t.audio}"></audio>` : ''}
       <label class="upload-audio-label">
         <input type="file" id="audio-file" accept="audio/*" style="display:none" onchange="handleAudio(this)">
@@ -381,26 +381,31 @@ window.submitProfile = async function() {
   const errEl     = document.getElementById('s-err');
   const btn       = document.getElementById('s-submit');
   errEl.style.display = 'none';
-  if (!name)                { errEl.textContent='Nama wajib diisi.'; errEl.style.display='block'; return; }
-  if (!age||age<18||age>35) { errEl.textContent='Umur harus 18–35 tahun.'; errEl.style.display='block'; return; }
-  if (!services.length)     { errEl.textContent='Pilih minimal 1 layanan.'; errEl.style.display='block'; return; }
+  // Pakai data lama kalau tidak diubah
+  const finalName = name || currentTalent.name || '';
+  const finalAge  = (!isNaN(age) && age >= 18 && age <= 35) ? age : currentTalent.age;
+  if (!finalName)            { errEl.textContent='Nama wajib diisi.'; errEl.style.display='block'; return; }
+  if (!finalAge||finalAge<18||finalAge>35) { errEl.textContent='Umur harus 18–35 tahun.'; errEl.style.display='block'; return; }
+  if (!services.length)      { errEl.textContent='Pilih minimal 1 layanan.'; errEl.style.display='block'; return; }
+  // Foto wajib ada (bisa dari upload baru atau data lama)
   if (!_uploadedPhotoUrl && !currentTalent.img) { errEl.textContent='Upload foto profil terlebih dahulu.'; errEl.style.display='block'; return; }
-  if (!_uploadedAudioUrl && !currentTalent.audio) { errEl.textContent='Upload sample suara terlebih dahulu.'; errEl.style.display='block'; return; }
+  // Audio tidak wajib kalau sudah ada, tapi kalau belum pernah ada memang wajib
+  // (dibiarkan opsional — talent bisa simpan tanpa ganti audio)
   btn.disabled=true; btn.textContent='Mengirim...';
   try {
     const finalImg   = _uploadedPhotoUrl   || currentTalent.img   || '';
     const finalAudio = _uploadedAudioUrl   || currentTalent.audio || '';
     const isApproved = currentTalent.status === 'approved';
     if (isApproved) {
-      await setDoc(doc(db, 'pending_edits', _docId), { talentDocId:_docId, name, age, bio, services, img:finalImg, audio:finalAudio, submittedAt:new Date().toISOString(), status:'pending' });
+      await setDoc(doc(db, 'pending_edits', _docId), { talentDocId:_docId, name:finalName, age:finalAge, bio, services, img:finalImg, audio:finalAudio, submittedAt:new Date().toISOString(), status:'pending' });
       await setDoc(doc(db, 'talents', _docId), { _pendingEdit: true }, { merge: true });
       currentTalent._pendingEdit = true;
       toast('✅ Perubahan dikirim! Menunggu persetujuan admin.', 'success');
       _uploadedAudioUrl = ''; _uploadedPhotoUrl = '';
       renderSettingsPanel();
     } else {
-      await setDoc(doc(db, 'talents', _docId), { name, age, bio, services, img:finalImg, audio:finalAudio, status:'pending', submittedAt:new Date().toISOString(), _pendingEdit:false }, { merge: true });
-      currentTalent = { ...currentTalent, name, age, bio, services, img:finalImg, audio:finalAudio, status:'pending' };
+      await setDoc(doc(db, 'talents', _docId), { name:finalName, age:finalAge, bio, services, img:finalImg, audio:finalAudio, status:'pending', submittedAt:new Date().toISOString(), _pendingEdit:false }, { merge: true });
+      currentTalent = { ...currentTalent, name:finalName, age:finalAge, bio, services, img:finalImg, audio:finalAudio, status:'pending' };
       toast('✅ Profil dikirim! Tunggu review admin.');
       _uploadedAudioUrl = ''; _uploadedPhotoUrl = '';
       showPage('dashboard'); updateBanner();
