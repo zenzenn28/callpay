@@ -723,3 +723,35 @@ button{cursor:pointer;font-family:'Nunito',sans-serif}
   .nav-links li:last-child a { border-bottom: none; }
   .nav-links a:hover { color: var(--pink); background: rgba(249,168,201,.05); }
 }
+/* ── TESTIMONI MODAL ─────────────────────────────────────── */
+.btn-testi-add{
+  background:transparent;border:2px solid var(--pink-mid);
+  color:var(--pink-mid);padding:11px 28px;border-radius:99px;
+  font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:800;
+  cursor:pointer;transition:all .2s;
+}
+.btn-testi-add:hover{background:var(--pink-mid);color:#fff;transform:translateY(-1px)}
+
+.testi-modal-bg{
+  position:fixed;inset:0;z-index:3000;
+  background:rgba(0,0,0,.78);backdrop-filter:blur(7px);
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.testi-modal-bg.open{display:flex}
+.testi-modal{
+  background:linear-gradient(145deg,#13131F,#1A1A2E);
+  border:1px solid rgba(232,98,138,.2);border-radius:20px;
+  padding:28px;width:100%;max-width:480px;max-height:90vh;
+  overflow-y:auto;animation:fadeScaleIn .22s ease;
+  box-shadow:0 24px 60px rgba(0,0,0,.5);
+}
+@keyframes fadeScaleIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.testi-form-row{margin-bottom:16px}
+.testi-form-label{display:block;font-size:.73rem;font-weight:800;color:rgba(240,235,248,.5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px}
+.testi-form-input{width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#F0EBF8;font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:600;outline:none;transition:border-color .2s;resize:vertical}
+.testi-form-input:focus{border-color:var(--pink-mid)}
+.testi-form-input option{background:#1A1A2E;color:#F0EBF8}
+.btn-testi-submit{width:100%;padding:12px;border-radius:99px;background:linear-gradient(135deg,#E8628A,#F9A8C9);border:none;color:#fff;font-family:'Nunito',sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;transition:opacity .2s;box-shadow:0 4px 16px rgba(232,98,138,.3)}
+.btn-testi-submit:hover{opacity:.88}
+.btn-testi-submit:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:480px){.testi-modal{padding:20px 16px}}

@@ -80,7 +80,10 @@
   <span class="section-label pink">Testimoni</span>
   <h2 class="section-title">Kata Mereka 💬</h2>
   <p class="section-sub">Ribuan pelanggan sudah merasakan kehangatan CallPay</p>
-  <div class="testi-grid">
+  <div style="text-align:center;margin-bottom:28px">
+    <button class="btn-testi-add" onclick="openTestiModal()">✍️ Tulis Testimoni Kamu</button>
+  </div>
+  <div class="testi-grid" id="testi-grid">
     <div class="testi-card"><div class="testi-qmark">"</div><div class="testi-stars">★★★★★</div><p class="testi-text">Sleepcallnya beneran bikin tenang banget! Suaranya lembut, sabar dengerin ceritaku sampai ketiduran. Recommended banget!</p><div class="testi-user"><div class="testi-avatar pk">A</div><div><div class="testi-uname">Aysha R.</div><div class="testi-date">Februari 2025</div></div></div></div>
     <div class="testi-card"><div class="testi-qmark">"</div><div class="testi-stars">★★★★★</div><p class="testi-text">Lagi overthinking parah, terus nyoba temen curhat di CallPay. Beneran berasa lebih lega! Talent-nya asik dan ga judgmental sama sekali.</p><div class="testi-user"><div class="testi-avatar bl">D</div><div><div class="testi-uname">Dito S.</div><div class="testi-date">Januari 2025</div></div></div></div>
     <div class="testi-card"><div class="testi-qmark">"</div><div class="testi-stars">★★★★★</div><p class="testi-text">Virtual GF experience-nya top banget! Ngerasa di-sayang, di-perhatiin. Harganya juga terjangkau. Udah langganan dari 2022!</p><div class="testi-user"><div class="testi-avatar bl">R</div><div><div class="testi-uname">Raka P.</div><div class="testi-date">Maret 2025</div></div></div></div>
@@ -90,6 +93,41 @@
   </div>
 </div></div>
 
+<!-- MODAL TESTIMONI -->
+<div class="testi-modal-bg" id="testi-modal">
+  <div class="testi-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:1.1rem;font-weight:900">✍️ Tulis Testimoni</div>
+        <div style="font-size:.78rem;color:rgba(240,235,248,.5);font-weight:600;margin-top:2px">Ceritakan pengalamanmu bersama CallPay</div>
+      </div>
+      <button onclick="closeTestiModal()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(240,235,248,.6);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center">×</button>
+    </div>
+
+    <div class="testi-form-row">
+      <label class="testi-form-label">Untuk siapa testimoni ini? *</label>
+      <select id="testi-target" class="testi-form-input">
+        <option value="">— Pilih —</option>
+        <option value="CallPay Agency">🏢 CallPay Agency (umum)</option>
+      </select>
+    </div>
+
+    <div class="testi-form-row">
+      <label class="testi-form-label">Testimoni kamu * <span id="testi-count" style="color:rgba(240,235,248,.4);font-weight:600">(0/600 karakter)</span></label>
+      <textarea id="testi-text" class="testi-form-input" rows="5" placeholder="Ceritakan pengalamanmu..." maxlength="600" oninput="countTestiWords(this)"></textarea>
+    </div>
+
+    <div class="testi-form-row">
+      <label class="testi-form-label">Nama kamu (opsional)</label>
+      <input type="text" id="testi-name" class="testi-form-input" placeholder="Contoh: Aysha R.">
+    </div>
+
+    <p id="testi-err" style="color:#ff5c5c;font-size:.82rem;font-weight:700;display:none;margin-bottom:10px"></p>
+    <button class="btn-testi-submit" id="testi-submit-btn" onclick="submitTesti()">Kirim Testimoni 🚀</button>
+    <p style="font-size:.73rem;color:rgba(240,235,248,.35);font-weight:600;text-align:center;margin-top:10px">Testimoni akan direview admin sebelum ditampilkan</p>
+  </div>
+</div>
+
 <!-- FOOTER -->
 <footer class="footer">
   <div class="footer-top">
@@ -97,7 +135,7 @@
       <div class="footer-logo">CallPay</div>
       <p class="footer-tagline">Teman setia kamu sejak 2021. Selalu ada kapanpun kamu membutuhkan 💕</p>
     </div>
-    <nav class="footer-nav"><h4>Menu</h4><ul><li><a href="#home">Home</a></li><li><a href="#layanan">Layanan</a></li><li><a href="#talent">Talent</a></li><li><a href="#testimoni">Testimoni</a></li><li><a href="admin/index.html">Login Admin</a></li><li><a href="owner/index.html">Login Owner</a></li></ul></nav>
+    <nav class="footer-nav"><h4>Menu</h4><ul><li><a href="#home">Home</a></li><li><a href="#layanan">Layanan</a></li><li><a href="#talent">Talent</a></li><li><a href="#testimoni">Testimoni</a></li></ul></nav>
     <div class="footer-contact"><h4>Kontak</h4><p>📱 WhatsApp: <a href="https://wa.me/62895400709371">+62 895-400-709371</a></p><p>📸 Instagram: @callpay.id</p><p>🕐 Online: 24 Jam / 7 Hari</p></div>
   </div>
   <hr class="footer-hr">

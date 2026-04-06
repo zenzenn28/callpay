@@ -3,6 +3,7 @@
 // ============================================================
 import { DB, TALENTS, PRICES, DUR_LABEL } from './admin/data.js';
 
+
 // ── TAG COLOR HELPER ──────────────────────────────────────
 function tagClass(s) {
   if (s === 'Temen Call')    return 'tc';
@@ -329,7 +330,7 @@ let _fbApp = null, _fbDb = null;
 async function getFirebase() {
   if (_fbDb) return _fbDb;
   const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js');
-  const { getFirestore, collection, onSnapshot } = await import('https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js');
+  const { getFirestore, collection, onSnapshot, addDoc, getDocs, query, orderBy, where, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js');
   const FIREBASE_CONFIG = {
     apiKey:'AIzaSyBLPe_yx28LyefI856Ysxz3YEPnwA0ENFU',
     authDomain:'callpay-28a28.firebaseapp.com',
@@ -427,6 +428,123 @@ async function listenTalentStatus() {
 // ============================================================
 //  INIT
 // ============================================================
+// ── TESTIMONI ─────────────────────────────────────────────
+window.openTestiModal = function() {
+  // Populate talent options
+  const sel = document.getElementById('testi-target');
+  sel.innerHTML = '<option value="">— Pilih —</option><option value="CallPay Agency">🏢 CallPay Agency (umum)</option>';
+  TALENTS.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.name;
+    opt.textContent = '👤 ' + t.name;
+    sel.appendChild(opt);
+  });
+  document.getElementById('testi-text').value = '';
+  document.getElementById('testi-name').value = '';
+  document.getElementById('testi-err').style.display = 'none';
+  document.getElementById('testi-count').textContent = '(0/600 kata)';
+  document.getElementById('testi-modal').classList.add('open');
+};
+
+window.closeTestiModal = function() {
+  document.getElementById('testi-modal').classList.remove('open');
+};
+
+window.countTestiWords = function(el) {
+  const chars = el.value.length;
+  document.getElementById('testi-count').textContent = `(${chars}/600 karakter)`;
+  if (chars > 600) el.value = el.value.slice(0, 600);
+};
+
+window.submitTesti = async function() {
+  const target = document.getElementById('testi-target').value.trim();
+  const text   = document.getElementById('testi-text').value.trim();
+  const name   = document.getElementById('testi-name').value.trim() || 'Anonim';
+  const errEl  = document.getElementById('testi-err');
+  const btn    = document.getElementById('testi-submit-btn');
+  errEl.style.display = 'none';
+
+  if (!target) { errEl.textContent = 'Pilih dulu untuk siapa testimoni ini.'; errEl.style.display = 'block'; return; }
+  if (!text || text.length < 10) { errEl.textContent = 'Testimoni terlalu pendek, minimal 10 karakter.'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Mengirim...';
+  try {
+    const db = await getFirebase();
+    const { addDoc, collection, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js');
+    await addDoc(collection(db, 'pending_testimoni'), {
+      target, text, name,
+      status    : 'pending',
+      createdAt : serverTimestamp(),
+    });
+    closeTestiModal();
+    const t = document.getElementById('toast') || (() => { const d=document.createElement('div');d.className='toast';d.id='toast';document.body.appendChild(d);return d; })();
+    t.textContent = '✅ Testimoni terkirim! Menunggu review admin.';
+    t.className = 'toast show';
+    clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 4000);
+  } catch(e) {
+    errEl.textContent = 'Gagal: ' + e.message; errEl.style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'Kirim Testimoni 🚀';
+};
+
+// Load approved testimoni realtime — selalu 6 card total
+async function loadApprovedTestimoni() {
+  try {
+    const db = await getFirebase();
+    const { collection, query, where, onSnapshot } = await import('https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js');
+    const q = query(collection(db, 'pending_testimoni'), where('status','==','approved'));
+    onSnapshot(q, snap => {
+      const grid = document.getElementById('testi-grid');
+      if (!grid) return;
+
+      const approved = [];
+      snap.forEach(d => approved.push(d.data()));
+
+      // Semua card di grid (hardcode + dynamic)
+      const allCards = Array.from(grid.querySelectorAll('.testi-card'));
+      const totalSlot = 6;
+
+      if (approved.length === 0) {
+        // Tidak ada yang approved, kembalikan semua card hardcode
+        allCards.forEach(c => c.style.display = '');
+        grid.querySelectorAll('.testi-card-dynamic').forEach(el => el.remove());
+        return;
+      }
+
+      // Sembunyikan card hardcode dari belakang sebanyak approved yang ada (maks 6)
+      const hideCount = Math.min(approved.length, totalSlot);
+      const hardcodeCards = grid.querySelectorAll('.testi-card:not(.testi-card-dynamic)');
+      hardcodeCards.forEach((c, i) => {
+        // Sembunyikan dari card paling belakang
+        c.style.display = (i >= totalSlot - hideCount) ? 'none' : '';
+      });
+
+      // Hapus dynamic card lama
+      grid.querySelectorAll('.testi-card-dynamic').forEach(el => el.remove());
+
+      // Tambahkan dynamic card baru (maks totalSlot)
+      approved.slice(0, totalSlot).forEach(data => {
+        const initial    = (data.name || 'A')[0].toUpperCase();
+        const colorClass = ['pk','bl'][Math.floor(Math.random()*2)];
+        const date       = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('id-ID',{month:'long',year:'numeric'}) : '';
+        const card       = document.createElement('div');
+        card.className   = 'testi-card testi-card-dynamic';
+        let talentBadge = '';
+        if (data.target && data.target !== 'CallPay Agency') {
+          const talentData = TALENTS.find(t => t.name === data.target);
+          const isFemale   = !talentData || talentData.gender === 'female';
+          const badgeColor = isFemale
+            ? 'background:rgba(232,98,138,.12);border:1px solid rgba(232,98,138,.35);color:#E8628A'
+            : 'background:rgba(168,213,249,.1);border:1px solid rgba(168,213,249,.3);color:#A8D5F9';
+          talentBadge = `<span style="display:inline-block;${badgeColor};font-size:.68rem;font-weight:800;padding:2px 8px;border-radius:99px;margin-left:6px">untuk ${data.target}</span>`;
+        }
+        card.innerHTML   = `<div class="testi-qmark">"</div><div class="testi-stars">★★★★★</div><p class="testi-text">${data.text}</p><div class="testi-user"><div class="testi-avatar ${colorClass}">${initial}</div><div><div class="testi-uname" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">${data.name || 'Anonim'}${talentBadge}</div><div class="testi-date">${date}</div></div></div>`;
+        grid.appendChild(card);
+      });
+    });
+  } catch(e) { console.warn('loadApprovedTestimoni:', e); }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   await DB.getSettingsAsync(); // inisialisasi settings agar DB.addOrder bisa jalan
   await loadAudioFromFirestore();
@@ -435,4 +553,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const modal = document.getElementById('order-modal');
   if (modal) modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
   initScrollAnimations();
+  loadApprovedTestimoni();
+  // Tutup modal testimoni kalau klik backdrop
+  document.getElementById('testi-modal')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('testi-modal')) closeTestiModal();
+  });
 });
