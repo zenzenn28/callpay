@@ -34,9 +34,9 @@ let _uploadedAudioUrl = '';
 let _uploadedPhotoUrl = '';
 
 // ── SESSION ───────────────────────────────────────────────
-function getSession() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)); } catch { return null; } }
-function setSession(d) { sessionStorage.setItem(SESSION_KEY, JSON.stringify(d)); }
-function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
+function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; } }
+function setSession(d) { localStorage.setItem(SESSION_KEY, JSON.stringify(d)); }
+function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
 function toast(msg, type = '') {
   const t = document.getElementById('toast');
